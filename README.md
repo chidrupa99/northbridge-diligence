@@ -147,7 +147,7 @@ These are the cases that separate a working screen from a demo. Each is covered 
 
 ```bash
 pip install -r requirements-dev.txt
-python -m pytest          # 45 tests, ~0.3s, zero network calls
+python -m pytest          # 67 tests, ~1s, zero network calls
 ```
 
 **Recorded fixtures, not hand-written mocks.** `tests/record_fixtures.py` snapshots real EDGAR responses for two deliberately chosen filers and prunes them to the tags under test. Beyond Meat gives us negative equity, negative EBITDA and positive net income on a loss-making operating business; Target gives us a January fiscal year end, a mid-history tag switch, and an abandoned `GrossProfit`. Hand-written mocks never invent a January-FYE retailer that stops tagging gross profit — real filings do, which is exactly why the tests use them. `_today()` is monkeypatched to a frozen date so staleness assertions don't decay into flakes.

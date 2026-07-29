@@ -170,7 +170,7 @@ XBRL is messier than its reputation. Four realities are handled in code, each pi
 
 ### 7.3 How the behaviour is held in place
 
-45 tests run the real client against **recorded** EDGAR responses — Beyond Meat for distress, Target for calendar and tag chaos — in about a third of a second with no network. Recorded rather than hand-mocked, because hand-written mocks never invent a January-FYE retailer that abandons `GrossProfit`; real filings do, and those are the cases that break screens.
+67 tests run the real client against **recorded** EDGAR responses — Beyond Meat for distress, Target for calendar and tag chaos — in under a second with no network. Recorded rather than hand-mocked, because hand-written mocks never invent a January-FYE retailer that abandons `GrossProfit`; real filings do, and those are the cases that break screens.
 
 On top sits a golden-set regression over the entire screen output. When it fails it names the field — `flags lost: ['LIQUIDITY']` — instead of dumping a 200-line dict. It was verified to bite by deliberately moving a threshold and confirming it caught the lost flag.
 
