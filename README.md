@@ -47,39 +47,17 @@ The same blob also hands us every prior-year comparative for free — a FY2025 1
 
 ## Setup
 
-**Prerequisites:** Python **3.10 or newer** (the MCP SDK requires it, and this code uses 3.10+ type syntax), and an MCP client — Claude Desktop or Claude Code.
-
-### 1. Install
+**Prerequisites:** Python 3.10+ (the MCP SDK requires it) and an MCP client — Claude Desktop or Claude Code.
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
+export EDGAR_USER_AGENT="Your Org you@example.com"   # SEC returns 403 without it
+python scripts/doctor.py                             # 9 checks; do this before step 4
+cp -r skill ~/.claude/skills/company-screen
 ```
 
-### 2. Identify yourself to SEC
-
-```bash
-export EDGAR_USER_AGENT="Your Name you@example.com"
-```
-
-Required — EDGAR returns **HTTP 403** to unidentified clients. Use a real, reachable address; SEC's fair-access policy expects a contact they could actually use.
-
-### 3. Verify before wiring anything up
-
-```bash
-python scripts/doctor.py                                  # live — proves it works HERE
-pip install -r requirements-dev.txt && python -m pytest   # optional — the offline suite
-```
-
-The two answer different questions, and for an install it's `doctor.py` that matters.
-
-`doctor.py` makes real calls and checks what actually breaks on a new machine: Python version, missing dependencies, an unset or rejected `EDGAR_USER_AGENT`, and reachability of all three SEC hosts (`www`, `data` and `efts` are separate origins, and a corporate egress allowlist routinely permits one and not the others). It ends with a real screen of Apple, confirms the server registers its 8 tools, and validates the skill's frontmatter. Each failure prints the fix; exit code is 0 only if everything passed, so it can gate a deploy.
-
-`pytest` runs against recorded fixtures and never opens a socket. That makes it fast and deterministic — but it would pass on a machine with EDGAR firewalled and no contact header set, so it verifies the *logic*, not the *install*. It needs the dev dependencies, which is why they're installed inline above rather than in step 1.
-
-Do this **before** step 4. Otherwise a broken install first shows up as a skill that mysteriously returns nothing inside a Claude conversation — the worst place to debug it.
-
-### 4. Register with an MCP client
+Then point your Claude client at the server:
 
 ```jsonc
 {
@@ -87,28 +65,20 @@ Do this **before** step 4. Otherwise a broken install first shows up as a skill 
     "northbridge-diligence": {
       "command": "/absolute/path/to/northbridge-diligence/.venv/bin/python",
       "args": ["/absolute/path/to/northbridge-diligence/src/server.py"],
-      "env": { "EDGAR_USER_AGENT": "Your Name you@example.com" }
+      "env": { "EDGAR_USER_AGENT": "Your Org you@example.com" }
     }
   }
 }
 ```
 
-Two things worth knowing here:
+Point `command` at the **virtualenv's** Python — the client launches the server in its own environment and will not inherit an activated venv. And never run `src/server.py` yourself: it speaks MCP over stdio, so it waits silently on standard input and looks hung when it is working correctly. The client starts it.
 
-- **You never run `src/server.py` yourself.** It speaks MCP over *stdio*, meaning it waits silently on standard input — run it in a terminal and you get a cursor that never returns, which looks broken but isn't. The client starts it for you, the way an OS talks to a plugged-in device.
-- **Point `command` at the virtualenv's Python**, not bare `python`. The client launches the server in its own environment and will not have your activated venv, so a bare `python` usually resolves to a system install without the dependencies.
+**To trigger the skill**, say: *"Screen Beyond Meat for the deal team"* — any ticker or company name. There is no command to remember. A correct result carries `[S1]`-style markers throughout and a Sources table; figures without source markers mean the skill is not being used.
 
-The `env` block is separate from the `export` in step 2 — that one covers the tests and `doctor.py`, this one covers the server as the client runs it. Both need setting.
+Run `python scripts/doctor.py` first. It checks Python version, dependencies, the contact header, each of the three SEC hosts separately, a live screen, the 8 registered tools and the skill frontmatter — and prints the fix for whatever fails. Verifying before wiring into a client matters, because otherwise a broken install first appears as a skill silently returning nothing inside a conversation.
 
-### 5. Install the skill
-
-```bash
-cp -r skill ~/.claude/skills/company-screen
-```
-
-### 6. First run
-
-Say: **"Screen Beyond Meat for the deal team"** — or any ticker or company name. The skill triggers on the request itself; there's no command to remember. You should get a memo with `[S1]`-style markers throughout and a Sources table at the bottom. If figures appear without source markers, the skill is not being used.
+- **Installing for a team?** → [DEPLOYMENT.md](DEPLOYMENT.md) — security posture, egress requirements, troubleshooting
+- **Extending or maintaining it?** → [DEVELOPING.md](DEVELOPING.md) — test harness, fixtures, tuning knobs, invariants
 
 ---
 
@@ -208,18 +178,15 @@ These are the cases that separate a working screen from a demo. Each is covered 
 
 ## Tests
 
-```bash
-pip install -r requirements-dev.txt
-python -m pytest          # 67 tests, ~1s, zero network calls
-```
+67 offline tests plus a golden-set regression, in about a second. Three things about them are deliberate:
 
-**Recorded fixtures, not hand-written mocks.** `tests/record_fixtures.py` snapshots real EDGAR responses for two deliberately chosen filers and prunes them to the tags under test. Beyond Meat gives us negative equity, negative EBITDA and positive net income on a loss-making operating business; Target gives us a January fiscal year end, a mid-history tag switch, and an abandoned `GrossProfit`. Hand-written mocks never invent a January-FYE retailer that stops tagging gross profit — real filings do, which is exactly why the tests use them. `_today()` is monkeypatched to a frozen date so staleness assertions don't decay into flakes.
+**Recorded fixtures, not hand-written mocks.** Real EDGAR responses for two filers chosen for what they break. Beyond Meat gives negative equity, negative EBITDA and positive net income on a loss-making operating business; Target gives a January fiscal year end, a mid-history tag switch, and an abandoned `GrossProfit`. Hand-written mocks never invent a January-FYE retailer that stops tagging gross profit — real filings do, which is the point.
 
-**Tests are named after failure modes**, not after functions — `test_january_year_end_uses_the_filers_own_label_not_the_calendar_year`, `test_abandoned_tag_becomes_a_gap_not_a_stale_number`, `test_merging_candidate_tags_beats_first_tag_wins`, `test_a_full_screen_costs_two_http_calls`, `test_path_traversal_in_a_tag_is_rejected_before_it_reaches_a_url`.
+**Named after failure modes, not functions** — `test_january_year_end_uses_the_filers_own_label_not_the_calendar_year`, `test_abandoned_tag_becomes_a_gap_not_a_stale_number`, `test_a_full_screen_costs_two_http_calls`. EDGAR rarely crashes you; it hands you a plausible wrong number, so each test pins one specific way that happens.
 
-**Golden-set regression.** `tests/test_golden.py` snapshots the entire screen output for both filers. When it fails it names the field — `net_margin: 0.795 (ok=True) -> 0.42 (ok=True)`, `flags lost: ['LIQUIDITY']` — rather than dumping a 200-line dict. Regenerate deliberately with `UPDATE_GOLDEN=1 python -m pytest tests/test_golden.py`, after reading the diff.
+**The golden set is the behavioural contract.** It snapshots entire screen outputs and, on failure, names the field — `flags lost: ['LIQUIDITY']` — rather than dumping a 200-line dict. I verified the harness actually bites by moving the current-ratio threshold from 1.0 to 0.5 and confirming it reported exactly that.
 
-I verified the harness actually bites by moving the current-ratio threshold from 1.0 to 0.5 and confirming the golden test reported `flags lost: ['LIQUIDITY']`.
+One limit worth stating: the suite is offline, so it verifies *logic*, not *installation* — it passes with EDGAR unreachable and no contact header set. `scripts/doctor.py` covers that gap. Running and extending the suite is documented in [DEVELOPING.md](DEVELOPING.md).
 
 ---
 
