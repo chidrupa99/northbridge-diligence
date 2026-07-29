@@ -222,9 +222,12 @@ It demonstrates the thing that separates a real screen from a naive one. FY2025 
 
 ## What I'd build next (another week)
 
-1. **Comps tool** — given a target, assemble a peer set (SIC + size band, human-overridable) and return side-by-side growth/margin/leverage tables with the same attribution. This is the highest-leverage addition for a PE screen, and it's also what makes industry-relative thresholds defensible.
-2. **Widen the golden set** — the harness exists; it needs more filers through it. 15–20 companies (clean large-cap, foreign filer, recent IPO, restated, spin-off) with expected behaviour, run in CI. Trust needs tests, and the tests need coverage.
-3. **Segment & guidance extraction** — pull segment revenue and MD&A highlights from the 10-K, so the memo speaks to *business mix*, not just consolidated numbers.
-4. **Smarter risk extraction** — replace the heading heuristic with a structured pass that returns individual risk factors with severity tags, and diff Item 1A year-over-year to surface *newly added* risks (often the most telling signal). The section extractor now generalises across Items 1A/3/7/9A, so the diff is mostly plumbing; what it needs is a way to align risk factors across years that survives rewording.
-5. **A covenant signal that actually works.** Exact-phrase search failed (see seams). The tractable version reads the debt footnote and Item 7 liquidity discussion directly rather than pattern-matching the whole filing — more work, but it targets the one capital-structure question this screen currently cannot answer.
-6. **Disk-backed cache with an EDGAR freshness check** — the in-process cache dies with the process. Persisting `companyfacts` keyed on the filer's latest accession would make repeat screens instant across sessions while still catching new filings.
+1. **Comps tool.** Assemble a peer set (SIC + size band, human-overridable) and return side-by-side growth, margin and leverage with the same attribution. A margin falling 240bp means one thing alone and another against five peers — and it's what would make industry-relative thresholds defensible instead of one global set.
+
+2. **Linkbase-aware statements.** Statement structure lives in each filing's `_pre.xml` and `_cal.xml`, not in `companyfacts`. `_cal.xml` declares which lines sum to which subtotals, giving a free reconciliation check — JPMorgan's net interest income ($95.4bn) plus noninterest income ($87.0bn) ties exactly to $182.4bn of revenue. `_pre.xml` explains gaps: JPMorgan's income statement has no operating income line at all, which turns a bare `MISSING_DATA` flag into a structural answer. It would surface candidates for a human, never auto-substitute — mapping pretax income onto operating income would break the report-gaps-never-estimate invariant, and for a bank the difference is the loan loss provision.
+
+3. **A covenant signal that actually works.** Exact-phrase search failed and was cut (see seams). The tractable version reads the debt footnote and Item 7 liquidity discussion directly instead of pattern-matching the filing — it targets the one capital-structure question this screen cannot answer.
+
+4. **Year-over-year risk-factor diff.** A *newly added* risk factor is a far stronger signal than any standing one. The section extractor already spans Items 1A/3/7/9A, so the plumbing exists; the open problem is aligning risk factors across years in a way that survives rewording.
+
+5. **Widen the golden set.** 15–20 filers covering a foreign issuer, a recent IPO, a restatement and a spin-off, run in CI. Trust needs tests, and the tests need coverage.
