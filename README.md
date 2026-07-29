@@ -95,6 +95,37 @@ Scoping the toolset was the main judgment call. The principle: **one tool = one 
 | `get_risk_factors` | Item 1A from the latest 10-K | The "risk section worth a second look," and the verification step for anything `scan_disclosure_signals` reports as present. Conservative extraction — returns the source URL and a note rather than a guess if it can't isolate the section. |
 | `get_financial_concept` | any one metric/US-GAAP tag as a time series | Escape hatch for questions the curated set doesn't cover (R&D, capex). Keeps the curated tools focused while staying flexible. Tag names are validated against a strict pattern before they reach a URL. |
 
+### The second scoping decision: ~500 concepts down to 17
+
+Scoping happened twice — once at the tool surface above, and once at the data layer. The second is less visible and arguably more consequential.
+
+Filers do not report a common set of concepts. Measured across seven filers in different industries: Beyond Meat reports 376 US-GAAP concepts, Apple 503, JPMorgan 917. Between them they use **2,220 distinct concepts, of which only 49 are common to all seven** — a shared core of roughly 2%, and mostly plumbing (share counts, tax line items). Almost nothing you would build a screen on.
+
+So `CONCEPT_MAP` curates that down to **17 concepts a first-pass PE screen actually turns on**, each mapped to an *ordered* list of candidate US-GAAP tags:
+
+| Statement | Concepts |
+|---|---|
+| Income | `revenue` · `cost_of_revenue` · `gross_profit` · `operating_income` · `interest_expense` · `net_income` |
+| Balance sheet | `total_assets` · `total_liabilities` · `current_assets` · `current_liabilities` · `stockholders_equity` · `cash` · `long_term_debt` · `current_debt` |
+| Cash flow | `operating_cash_flow` · `depreciation_amortization` · `capex` |
+
+17 concepts, 33 candidate tags — 11 of the 17 need more than one spelling, because filers disagree:
+
+```python
+"revenue": [
+    "RevenueFromContractWithCustomerExcludingAssessedTax",  # post-ASC 606: Apple, Target, Tesla
+    "Revenues",                                             # JPMorgan, Pfizer, Realty Income
+    "RevenueFromContractWithCustomerIncludingAssessedTax",
+    "SalesRevenueNet",                                      # legacy, pre-2018
+],
+```
+
+The order encodes preference, not just alternatives: the modern tag wins where both exist, and the legacy tag fills the years before the transition.
+
+**No single revenue tag covers all seven filers above.** The two leading tags cover six each — but not the same six. The contract-revenue tag misses JPMorgan; `Revenues` misses Beyond Meat. That is why this is a list rather than a string, and why the merge happens per fiscal year rather than per tag.
+
+Curation is not a ceiling. Anything outside the 17 stays reachable through `get_financial_concept`, by friendly name or raw tag — so the curated set keeps the common path focused without making the uncommon question impossible.
+
 ### Attribution model
 
 Every financial datapoint is a `SourcedValue` carrying `period_end`, `fiscal_year`, `form`, `accession`, `xbrl_tag`, `filed`, a resolvable `source_url`, and — when the figure was later revised — `restated` plus `originally_reported`. The skill renders these as `[S#]` markers mapping to a Sources table. **If a number has no source, it does not go in the memo.**
@@ -121,7 +152,7 @@ The payoff is that an analyst can re-run `compute_screening_metrics("BYND")` and
 
 These are the cases that separate a working screen from a demo. Each is covered by a test named after the failure it prevents.
 
-**Filers switch tags mid-history.** A concept maps to an ordered list of US-GAAP tags. The naive implementation is first-tag-wins: try `RevenueFromContractWithCustomerExcludingAssessedTax`, and if it returns anything, stop. That silently truncates history at the ASC 606 transition — Ford came back with 10 years instead of 19, Target 10 instead of 18. Fixed by **merging candidate tags per fiscal year in priority order**, so the modern tag wins where both exist and the legacy tag fills the years before it. Where a series spans more than one tag, `mixed_tag_basis` says so and an info flag fires.
+**Filers switch tags mid-history.** Given the tag ladders above, the naive implementation is first-tag-wins: try the modern tag, and if it returns anything, stop. That silently truncates history at the ASC 606 transition — Ford came back with 10 years instead of 19, Target 10 instead of 18. Fixed by merging candidates **per fiscal year** rather than per tag. Where a series spans more than one tag, `mixed_tag_basis` says so and an info flag fires.
 
 **Fiscal years aren't calendar years.** Target's fiscal 2009 ended 2010-01-30. Taking `end[:4]` labels it 2010 and puts two "2009"s in the series. The fix reads the filer's own `fy` label out of the facts — within one accession, the fact with the latest period end *is* that report's own year — and carries the offset over to comparatives the index didn't cover directly. A test pins `2010-01-30 → FY2009`.
 
