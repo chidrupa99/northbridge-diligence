@@ -1118,20 +1118,105 @@ def _find_latest_10k(comp: dict) -> Optional[dict]:
     return None
 
 
-def extract_item_1a(text: str, max_chars: int = 12000) -> Optional[str]:
-    """Pure-text Item 1A extraction, split out so it is unit-testable."""
-    text = re.sub(r"[ \t\xa0]+", " ", text)
-    text = re.sub(r"\n{2,}", "\n", text)
-    starts = [m.start() for m in re.finditer(
-        r"Item\s*1A[\.\s:]+Risk\s*Factors", text, re.IGNORECASE)]
+# Section start/end markers. The end marker is the *next* item, which is what
+# bounds the span. Only risk_factors is exposed as a tool today; the others cost
+# nothing to carry and make the extractor testable against more real documents.
+SECTION_PATTERNS: dict[str, tuple[str, str, str]] = {
+    "risk_factors": (
+        r"Item\s*1A[\.\s:\-–—]+Risk\s*Factors",
+        r"Item\s*1B[\.\s:\-–—]+Unresolved|Item\s*2[\.\s:\-–—]+Propert",
+        "Item 1A — Risk Factors",
+    ),
+    "mdna": (
+        r"Item\s*7[\.\s:\-–—]+Management.{0,3}s\s*Discussion",
+        r"Item\s*7A[\.\s:\-–—]+Quantitative",
+        "Item 7 — Management's Discussion and Analysis",
+    ),
+    "legal_proceedings": (
+        r"Item\s*3[\.\s:\-–—]+Legal\s*Proceedings",
+        r"Item\s*4[\.\s:\-–—]+(Mine|Submission)",
+        "Item 3 — Legal Proceedings",
+    ),
+    "controls": (
+        r"Item\s*9A[\.\s:\-–—]+Controls\s*and\s*Procedures",
+        r"Item\s*9B[\.\s:\-–—]+Other",
+        "Item 9A — Controls and Procedures",
+    ),
+}
+
+# A table-of-contents row with its page number runs a few dozen characters. The
+# shortest real section observed is Dollar General's Item 3, a ~230-character
+# cross-reference into the notes. 80 clears the former with room under the latter.
+_MIN_SECTION_CHARS = 80
+
+
+def _find_section_span(text: str, start_pat: str, end_pat: str
+                       ) -> Optional[tuple[int, int]]:
+    """Locate a section's real span in messy filing text, in two steps.
+
+    Each marker appears several times in a 10-K: once in the table of contents,
+    again in cross-references ("see Item 1A"), and once as the actual heading.
+    Two obvious rules both fail on real filings:
+
+      * *first match* lands in the table of contents;
+      * *last match* — the previous implementation here — lands on a
+        cross-reference that appears AFTER the section. On Dollar General's
+        FY2025 10-K that returned 2,958 characters of audit-committee text
+        beginning mid-sentence, and reported it as a successful extraction.
+
+    So: the widest start/end pairing is used only to identify which *end* marker
+    is real, since the real end is by construction far from every start. Given
+    that end, the true heading is the last candidate before it — contents rows
+    and forward-looking cross-references all sit earlier, and any cross-reference
+    that sits later is now excluded by construction.
+
+    Verified against Apple and Dollar General FY2025 10-Ks, which between them
+    contain contents rows, earlier cross-references and later cross-references.
+    """
+    starts = [m.start() for m in re.finditer(start_pat, text, re.IGNORECASE)]
     if not starts:
         return None
-    begin = starts[-1]
-    end_m = (re.search(r"Item\s*1B[\.\s:]", text[begin + 20:], re.IGNORECASE)
-             or re.search(r"Item\s*2[\.\s:]", text[begin + 20:], re.IGNORECASE))
-    end = begin + 20 + end_m.start() if end_m else begin + max_chars
-    section = text[begin:end].strip()
-    return section or None
+    ends = [m.start() for m in re.finditer(end_pat, text, re.IGNORECASE)]
+
+    section_end, widest = len(text), -1
+    for start in starts:
+        end = next((e for e in ends if e > start), len(text))
+        if end - start > widest:
+            widest, section_end = end - start, end
+
+    preceding = [s for s in starts if s < section_end]
+    if not preceding:
+        return None
+    section_start = max(preceding)
+
+    if section_end - section_start < _MIN_SECTION_CHARS:
+        return None
+    return section_start, section_end
+
+
+def extract_section(text: str, section: str = "risk_factors") -> Optional[str]:
+    """Pure-text section extraction, split out so it is unit-testable."""
+    if section not in SECTION_PATTERNS:
+        raise EdgarError(
+            f"Unknown section {section!r}. Known: {', '.join(sorted(SECTION_PATTERNS))}."
+        )
+    text = re.sub(r"[ \t\xa0]+", " ", text)
+    text = re.sub(r"\n{2,}", "\n", text)
+    start_pat, end_pat, _label = SECTION_PATTERNS[section]
+    span = _find_section_span(text, start_pat, end_pat)
+    if span is None:
+        return None
+    return text[span[0]:span[1]].strip() or None
+
+
+def extract_item_1a(text: str, max_chars: int = 12000) -> Optional[str]:
+    """Item 1A extraction. Kept as a named entry point; see `extract_section`.
+
+    `max_chars` is accepted for backward compatibility but no longer bounds the
+    span — truncation is the caller's decision, and silently cutting here made a
+    partial section indistinguishable from a complete one.
+    """
+    return extract_section(text, "risk_factors")
 
 
 def get_risk_factors(query: str, max_chars: int = 12000) -> dict:

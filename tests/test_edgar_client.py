@@ -367,3 +367,84 @@ def test_item_1a_extraction_skips_the_table_of_contents():
 
 def test_item_1a_extraction_fails_soft():
     assert ec.extract_item_1a("A filing with no risk factors heading at all.") is None
+
+
+# A 10-K that cross-references Item 1A *after* the section itself — the shape of
+# Dollar General's FY2025 filing, where Item 1C points back at the risk factors.
+# Taking the last heading match landed on that cross-reference and returned 2,958
+# characters of audit-committee text, reported as a successful extraction.
+TENK_LATE_CROSSREF = """
+Table of Contents
+Item 1A. Risk Factors 14
+Item 1B. Unresolved Staff Comments 40
+Item 1C. Cybersecurity 41
+PART I
+Item 1A. Risk Factors
+Our business faces substantial competition and our margins may decline.
+""" + ("Risk narrative continues at length. " * 60) + """
+Item 1B. Unresolved Staff Comments
+None.
+Item 1C. Cybersecurity
+See Item 1A. Risk Factors for additional information regarding cybersecurity
+risks that could impact our business. The Audit Committee oversees this process
+and receives quarterly reports from management on cyber risk posture.
+"""
+
+
+def test_item_1a_extraction_ignores_a_cross_reference_after_the_section():
+    section = ec.extract_item_1a(TENK_LATE_CROSSREF)
+    assert section is not None
+    assert section.startswith("Item 1A. Risk Factors")
+    assert "substantial competition" in section
+    # The tell for the old bug: the returned text began inside Item 1C.
+    assert "Audit Committee oversees" not in section
+
+
+def test_item_1a_extraction_returns_the_whole_section_not_a_fragment():
+    section = ec.extract_item_1a(TENK_LATE_CROSSREF)
+    assert len(section) > 1000
+
+
+def test_mdna_extraction_is_bounded_by_item_7a():
+    text = """
+    Table of Contents
+    Item 7. Management's Discussion and Analysis 25
+    Item 7A. Quantitative and Qualitative Disclosures 40
+    Investors should read Item 7. Management's Discussion and Analysis together
+    with the risk factors described elsewhere in this report.
+    Item 7. Management's Discussion and Analysis
+    Net sales increased twelve percent driven by new store openings.
+    """ + ("Discussion continues. " * 60) + """
+    Item 7A. Quantitative and Qualitative Disclosures
+    Interest rate risk is managed centrally.
+    """
+    section = ec.extract_section(text, "mdna")
+    assert "Net sales increased" in section
+    # Anchoring on the forward-looking cross-reference would pull in the line
+    # above the heading; over-running would pull in Item 7A.
+    assert "Investors should read" not in section
+    assert "Interest rate risk" not in section
+
+
+def test_short_cross_reference_section_is_still_extracted():
+    # Dollar General satisfies Item 3 with one sentence pointing into the notes.
+    # That is a real section, not a failed match.
+    text = """
+    Item 3. Legal Proceedings 20
+    Item 4. Mine Safety Disclosures 21
+    Item 3. Legal Proceedings
+    The information contained in Note 7 to the consolidated financial statements
+    under the heading "Legal proceedings" contained in Part II, Item 8 of this
+    report is incorporated herein by this reference.
+    Item 4. Mine Safety Disclosures
+    Not applicable.
+    """
+    section = ec.extract_section(text, "legal_proceedings")
+    assert section is not None
+    assert "incorporated herein by this reference" in section
+    assert "Not applicable" not in section
+
+
+def test_unknown_section_name_is_rejected():
+    with pytest.raises(ec.EdgarError):
+        ec.extract_section("some text", "item_99_nonexistent")
