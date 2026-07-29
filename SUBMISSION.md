@@ -7,7 +7,7 @@ Where each item the brief asks for lives.
 | # | The brief asks for | Where it is |
 |---|---|---|
 | **1** | The MCP server code, runnable, with setup instructions | [`src/`](src/) — `edgar_client.py` (all logic), `server.py` (MCP shim, 8 tools).<br>Setup: [README § Setup](README.md#setup). Full deployment guide: [DEPLOYMENT.md](DEPLOYMENT.md) |
-| **2** | The skill, with its trigger and instructions | [`skill/SKILL.md`](skill/SKILL.md) — trigger in the YAML frontmatter `description`; workflow and memo template in the body |
+| **2** | The skill, with its trigger and instructions | [`skill/SKILL.md`](skill/SKILL.md) — **trigger:** say *"Screen Beyond Meat for the deal team"*, or any company name with "screen" / "size up" / "first pass" / "pull the financials on". No command to remember; the frontmatter `description` is what Claude matches against. Workflow and memo template in the body, and [README § Triggering the skill](README.md#triggering-the-skill) explains how to tell it fired. |
 | **3** | A short README: tools built and why, what was left out, where the seams are | [`README.md`](README.md) — § The tools, § Design decisions & seams |
 | **4** | One sample output against a real public company | [`samples/`](samples/) — **two** provided, see below |
 | **5** | A few sentences on what you'd build next | [README § What I'd build next](README.md#what-id-build-next-another-week) |

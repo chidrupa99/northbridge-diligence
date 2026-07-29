@@ -98,10 +98,46 @@ python -c "import shutil; print(shutil.which('edgar-mcp'))"
 
 Full walkthrough — config file locations per platform, the merge case when other MCP servers are already registered, JSON validation, troubleshooting — in [DEPLOYMENT.md](DEPLOYMENT.md).
 
-**To trigger the skill**, say: *"Screen Beyond Meat for the deal team"* — any ticker or company name. A correct result carries `[S1]`-style markers throughout and a Sources table; figures without source markers mean the skill is not being used.
-
 - **Installing for a team?** → [DEPLOYMENT.md](DEPLOYMENT.md) — security posture, egress requirements, troubleshooting
 - **Extending or maintaining it?** → [DEVELOPING.md](DEVELOPING.md) — test harness, fixtures, tuning knobs, invariants
+
+---
+
+## Triggering the skill
+
+> [!IMPORTANT]
+> **There is no command to remember.** Say it in plain language:
+>
+> ### *"Screen Beyond Meat for the deal team"*
+>
+> Any ticker or company name works — `BYND`, `Target`, `TGT`, *"size up Dollar General"*, *"run a first pass on Casey's"*.
+
+The skill triggers on the **request**, not on a keyword. Its frontmatter `description` is what Claude matches against, so all of these fire it:
+
+| What an analyst actually types | Fires? |
+|---|---|
+| "Screen Beyond Meat for the deal team" | ✓ |
+| "Can you size up Tractor Supply as a comp?" | ✓ |
+| "Run a first pass on Casey's General Stores" | ✓ |
+| "Pull the financials on TGT" | ✓ |
+| "What do we think of Ollie's Bargain Outlet?" | ✓ |
+| "What's Apple's stock price today?" | ✗ — not in EDGAR; this reads filings, not market data |
+
+### How to tell it worked
+
+A correct result has two tells:
+
+1. **`[S1]`-style source markers throughout** — on every figure in the memo
+2. **A Sources table at the bottom**, mapping each marker to a filing accession number and URL
+
+> [!WARNING]
+> **Figures without source markers mean the skill is not being used.** Claude answered from its own knowledge instead of calling the tools, and those numbers are not traceable to a filing. Check that `skill/` was copied to `~/.claude/skills/company-screen` and that the client was restarted.
+
+That second tell is the whole reason attribution is structural rather than prompted: a memo either carries citations on every number or it visibly does not, and a reader can tell in one glance which one they are holding.
+
+If the company name is ambiguous — *"Delta"*, *"American"* — the skill returns candidates and asks which you mean rather than guessing. That is deliberate: screening the wrong "Bank of X" is a silent and expensive error.
+
+See [`samples/BYND_screening_memo.md`](samples/BYND_screening_memo.md) for what a finished result looks like.
 
 ---
 

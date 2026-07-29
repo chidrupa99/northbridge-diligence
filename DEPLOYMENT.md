@@ -139,9 +139,16 @@ Claude client has never loaded a skill.
 
 ### 7. Confirm it works for the analyst
 
-Have them say: **"Screen Beyond Meat for the deal team"** — or any ticker or company name. There is no command to remember; the skill triggers on the request itself.
+Have them say: **"Screen Beyond Meat for the deal team"** — or any ticker or company name. There is no command to remember; the skill triggers on the request itself, so "size up Dollar General" or "pull the financials on TGT" work equally well.
 
-A correct result has `[S1]`-style markers throughout and a Sources table at the bottom. **If figures appear without source markers, the skill is not being used** — check step 6.
+**How to confirm it worked.** Two tells:
+
+1. `[S1]`-style source markers on every figure in the memo
+2. A Sources table at the bottom mapping each marker to a filing accession and URL
+
+> **Figures without source markers mean the skill is not being used.** Claude answered from its own knowledge rather than calling the tools, and those numbers trace to nothing. Re-check step 6 and confirm the client was restarted after step 5.
+
+If the analyst names an ambiguous company — "Delta", "American" — the skill returns candidates and asks which they mean rather than guessing. That is intended behaviour, not a failure.
 
 ### If something goes wrong
 
