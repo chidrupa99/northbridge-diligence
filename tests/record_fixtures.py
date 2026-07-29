@@ -17,11 +17,8 @@ from __future__ import annotations
 
 import json
 import pathlib
-import sys
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "src"))
-
-import edgar_client as ec  # noqa: E402
+from northbridge_diligence import edgar_client as ec
 
 FIXTURES = pathlib.Path(__file__).parent / "fixtures"
 

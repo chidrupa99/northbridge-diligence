@@ -9,15 +9,15 @@ from __future__ import annotations
 
 import json
 import pathlib
-import sys
 from datetime import date
 
 import pytest
 
-SRC = pathlib.Path(__file__).resolve().parents[1] / "src"
-sys.path.insert(0, str(SRC))
-
-import edgar_client as ec  # noqa: E402
+# The package is installed (`pip install -e ".[dev]"`), so this is a plain
+# import — no sys.path manipulation. That is the main practical benefit of the
+# src/ layout: tests exercise the package exactly as an installed consumer
+# would, rather than a directory that happens to be adjacent.
+from northbridge_diligence import edgar_client as ec
 
 FIXTURES = pathlib.Path(__file__).parent / "fixtures"
 

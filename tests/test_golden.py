@@ -17,7 +17,7 @@ import pathlib
 
 import pytest
 
-import edgar_client as ec
+from northbridge_diligence import edgar_client as ec
 
 GOLDEN = pathlib.Path(__file__).parent / "golden"
 CASES = ["BYND", "TGT"]

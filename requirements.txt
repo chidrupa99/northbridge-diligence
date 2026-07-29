@@ -1,7 +1,0 @@
-# Works against both MCP SDK generations: FastMCP (1.x) was renamed MCPServer in
-# 2.0, and src/server.py imports whichever is present. Do not narrow this pin
-# without updating that import.
-mcp>=1.2.0
-requests>=2.31
-beautifulsoup4>=4.12
-lxml>=5.0

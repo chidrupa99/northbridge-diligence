@@ -23,7 +23,6 @@ import sys
 import time
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
 
 PASS, FAIL, SKIP = "\033[32m  ok  \033[0m", "\033[31m FAIL \033[0m", "\033[33m skip \033[0m"
 if not sys.stdout.isatty() or os.environ.get("NO_COLOR"):
@@ -68,7 +67,7 @@ def check_python() -> bool:
         fix="""The MCP SDK requires Python 3.10 or newer, and this code uses 3.10+
                type syntax. Install a newer Python and recreate the virtualenv:
                  python3.11 -m venv .venv && source .venv/bin/activate
-                 pip install -r requirements.txt""",
+                 pip install -e '.[dev]'""",
     )
 
 
@@ -92,13 +91,13 @@ def check_dependencies() -> bool:
             "Dependencies",
             f"missing: {', '.join(missing)}",
             fix="""Install them into the active environment:
-                     pip install -r requirements.txt
+                     pip install -e '.[dev]'
                    If that succeeded but this still fails, you are probably running a
                    different Python than the one you installed into. Check `which python`.""",
         )
 
     # Which SDK generation is present matters: FastMCP was renamed MCPServer in
-    # 2.0, and src/server.py imports whichever exists.
+    # 2.0, and server.py imports whichever exists.
     try:
         import importlib.metadata as md
 
@@ -183,7 +182,7 @@ def check_hosts(agent: str) -> bool:
 
 def check_end_to_end() -> bool:
     """One real screen, against a filer that will always exist."""
-    import edgar_client as ec
+    from northbridge_diligence import edgar_client as ec
 
     try:
         result = ec.compute_screening_metrics("AAPL", years=3)
@@ -216,7 +215,7 @@ def check_server() -> bool:
     import asyncio
 
     try:
-        import server
+        from northbridge_diligence import server
     except Exception as exc:
         return report(
             False,

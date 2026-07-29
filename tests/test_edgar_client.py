@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import pytest
 
-import edgar_client as ec
+from northbridge_diligence import edgar_client as ec
 
 
 # --------------------------------------------------------------------------- #

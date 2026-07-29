@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "northbridge-diligence"
+version = "1.0.0"
+description = "SEC EDGAR MCP server and company-screening skill for a private-equity deal team"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+
+dependencies = [
+    # The MCP SDK renamed FastMCP to MCPServer in 2.0. server.py imports
+    # whichever is present, so both generations work. Do not narrow this pin
+    # without updating that import -- tests/test_server.py guards it.
+    "mcp>=1.2.0",
+    "requests>=2.31",
+    "beautifulsoup4>=4.12",
+    "lxml>=5.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+# Lets the MCP client launch the server by name instead of by file path, so the
+# client config does not hardcode a path into the source tree.
+edgar-mcp = "northbridge_diligence.server:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+filterwarnings = ["error::DeprecationWarning"]

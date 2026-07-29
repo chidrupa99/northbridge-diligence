@@ -6,9 +6,12 @@ testable and reusable; here we just register each function as an MCP tool with a
 clear, model-facing docstring. Tool docstrings are the model's only spec for
 *when* and *how* to call a tool, so they are written for that audience.
 
-Run:  python src/server.py        (stdio transport, for MCP clients)
+Run:  edgar-mcp                   (stdio transport, for MCP clients)
 Env:  EDGAR_USER_AGENT="Your Name you@example.com"
       # SEC fair-access header — substitute a real, reachable contact.
+
+You do not normally run this yourself: on stdio the process waits on standard
+input, so it looks hung when it is working correctly. The MCP client starts it.
 """
 
 from __future__ import annotations
@@ -24,7 +27,7 @@ try:                                          # SDK >= 2.0
 except ImportError:                           # SDK 1.x
     from mcp.server.fastmcp import FastMCP as _Server
 
-import edgar_client as ec
+from . import edgar_client as ec
 
 mcp = _Server("northbridge-diligence")
 
@@ -162,5 +165,15 @@ def get_financial_concept(query: str, metric_or_tag: str, years: int = 6) -> dic
     return _safe(ec.get_financial_concept, query, metric_or_tag, years=years)
 
 
-if __name__ == "__main__":
+def main() -> None:
+    """Entry point for the `edgar-mcp` console script.
+
+    Exposed as a named command rather than a file path so an MCP client config
+    can point at `edgar-mcp` on the virtualenv's PATH instead of hardcoding a
+    path into the source tree.
+    """
     mcp.run()
+
+
+if __name__ == "__main__":
+    main()

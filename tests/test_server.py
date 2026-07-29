@@ -15,7 +15,7 @@ import asyncio
 
 import pytest
 
-import server
+from northbridge_diligence import server
 
 
 def _tools():
