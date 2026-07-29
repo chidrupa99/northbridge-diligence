@@ -1101,6 +1101,279 @@ def list_filings(query: str, form_types: Optional[list[str]] = None,
 
 
 # --------------------------------------------------------------------------- #
+# Disclosure signals (EDGAR full-text search)
+# --------------------------------------------------------------------------- #
+#
+# The XBRL side of this client answers "what are the numbers". It cannot answer
+# "what is the company worried about" — going-concern doubt, a material weakness,
+# a covenant waiver and customer concentration are sentences, and no tag exposes
+# them. For a distress screen those disclosures matter more than any ratio.
+#
+# Two things make this more than a search box:
+#
+# 1. The phrasing is curated. A model asked to "search for risks" invents
+#    plausible queries and misses the terms of art. An auditor writes "substantial
+#    doubt about its ability to continue as a going concern", never "may go
+#    bankrupt". The packs encode the language that actually appears in filings.
+#
+# 2. The boilerplate call is computed, not narrated. A phrase hit does NOT mean
+#    the condition applies — risk-factor sections describe hypothetical material
+#    weaknesses in the same words an auditor uses to report a real one. Beyond
+#    Meat matches "material weakness ..." in all seven of its 10-Ks while its
+#    Item 9A concludes controls were effective; every hit is the auditor
+#    describing its own testing methodology. So we compare the filings that
+#    matched against the filings that *could* have matched: language present in
+#    every annual report is standing boilerplate, language that appears in some
+#    years and not others is a change worth reading. That comparison is a rule,
+#    so it belongs in code, same as the ratio flags.
+
+_EFTS_URL = "https://efts.sec.gov/LATEST/search-index"
+
+# EDGAR's full-text index does not reach back further than this.
+FULL_TEXT_COVERAGE_FROM = "2001"
+
+# Phrases are calibrated, not guessed. Each was measured against three filers --
+# Beyond Meat (distressed but a going concern), Target (healthy) and Aditxt (a
+# real going-concern filer) -- and kept only where the counts discriminate:
+#
+#   phrase                        BYND   TGT   ADTX
+#   "substantial doubt"              0     0    116   <- fires only when true
+#   "material weakness"             25    23     24   <- fires everywhere
+#   "one customer accounted for"    20     0      0   <- BYND really is concentrated
+#   "goodwill impairment"            0    20      0   <- BYND carries no goodwill
+#
+# The long, formal versions of these phrases were the first attempt and were
+# wrong: "material weakness in our internal control over financial reporting"
+# matched 0 Target filings while "material weakness" matched 23. An over-specific
+# phrase produces a false "absent", and "absent" is reported to the deal team as a
+# real negative finding -- the most damaging error this tool could make. Phrases
+# are therefore chosen for recall, and precision is recovered by the boilerplate
+# classification below plus the requirement to read the filing.
+DISCLOSURE_PACKS: dict[str, dict] = {
+    "going_concern": {
+        "phrase": "substantial doubt",
+        "severity": "critical",
+        "why": "The statutory trigger wording for going-concern doubt: the auditor "
+               "or management doubts the company can fund twelve more months of "
+               "operations. Close to disqualifying without a recapitalisation thesis.",
+    },
+    "material_weakness": {
+        "phrase": "material weakness",
+        "severity": "high",
+        "why": "A control gap that could allow a material misstatement. Undermines "
+               "confidence in every other number in the screen. Note that the "
+               "auditor's standard report describes its own testing using this exact "
+               "phrase, so this one is boilerplate far more often than not.",
+    },
+    "customer_concentration": {
+        "phrase": "one customer accounted for",
+        "severity": "medium",
+        "why": "Revenue concentration is a valuation discount and a diligence "
+               "workstream. Common and often decisive in lower-middle-market targets.",
+    },
+    "impairment": {
+        "phrase": "goodwill impairment",
+        "severity": "medium",
+        "why": "Assets written below carrying value — often the first admission "
+               "that an acquisition or a segment underperformed.",
+    },
+}
+
+# Two packs were built and then removed rather than shipped, because measurement
+# said they would lie:
+#
+#   covenant breach -- no exact phrase discriminated. "covenant violation",
+#     "waiver from our lenders" and "not in compliance with the covenants" each
+#     returned zero hits even for the distressed filer, while bare "covenant"
+#     returned 84 (BYND) and 274 (TGT) of pure boilerplate. A pack that always
+#     reports "absent" is worse than no pack, because absence is reported as a
+#     finding. Covenant compliance is called out as a known gap instead.
+#
+#   restatement -- superseded by better evidence. compute_screening_metrics
+#     already emits a RESTATED flag derived from the XBRL facts themselves, which
+#     is verifiable arithmetic rather than a phrase match. Adding a fuzzy text
+#     signal alongside a computed one would only invite the two to disagree.
+
+
+def _efts_search(phrase: str, cik10: Optional[str] = None,
+                 forms: Optional[list[str]] = None) -> dict:
+    """Query EDGAR full-text search for an exact phrase."""
+    from urllib.parse import urlencode
+
+    params: dict[str, str] = {"q": f'"{phrase}"'}
+    if cik10:
+        params["ciks"] = cik10
+    if forms:
+        params["forms"] = ",".join(f.upper() for f in forms)
+    return _get_json(f"{_EFTS_URL}?{urlencode(params)}")
+
+
+def _hits(payload: dict) -> list[dict]:
+    return payload.get("hits", {}).get("hits", [])
+
+
+def _total(payload: dict) -> int:
+    """EDGAR's match count. NOTE: this counts matching *documents*, not filings.
+
+    A single 10-K is dozens of files, so a phrase in the main document plus two
+    exhibits counts three. Use `_distinct_filings` whenever the number is going to
+    be compared against a count of filings.
+    """
+    return payload.get("hits", {}).get("total", {}).get("value", 0)
+
+
+def _distinct_filings(payload: dict) -> int:
+    """Number of distinct filings represented in a response's hits.
+
+    Counted from accession numbers rather than from `total`, because the two are
+    in different units. Full-text search caps its hit list at 100; that ceiling is
+    unreachable for a single company scoped to one form type, which is the only
+    place this is used.
+    """
+    return len({
+        hit.get("_source", {}).get("adsh") or hit.get("_id", "").split(":")[0]
+        for hit in _hits(payload)
+    })
+
+
+def _annual_accessions(comp: dict) -> list[str]:
+    """Accession numbers of the company's annual reports, newest first.
+
+    The denominator for the boilerplate test: language in every one of these is
+    standing template text, not news.
+    """
+    subs = _get_submissions(comp["cik10"])
+    recent = subs.get("filings", {}).get("recent", {})
+    return [
+        recent["accessionNumber"][i]
+        for i, form in enumerate(recent.get("form", []))
+        if form in _ANNUAL_FORMS
+    ]
+
+
+def _classify(total_matched: int, annual_matched: int,
+              annual_on_file: int) -> tuple[str, str]:
+    """Decide what a set of matching filings means. Returns (assessment, note).
+
+    Counts come from EDGAR's `total`, never from the returned hit list. Full-text
+    search caps its response at 100 hits, so a filer whose language appears in
+    every one of twenty filings would look partial if we counted what came back --
+    which is exactly how standing boilerplate would get mistaken for a change.
+    """
+    if total_matched == 0:
+        return ("absent", "Phrase does not appear in any filing indexed since "
+                          f"{FULL_TEXT_COVERAGE_FROM}. Treat as a genuine negative "
+                          "signal, not a data gap.")
+
+    if annual_on_file >= 3 and annual_matched >= annual_on_file:
+        return ("likely_boilerplate",
+                f"Present in all {annual_on_file} annual reports on file. Language "
+                "that never changes is almost always standing risk-factor or "
+                "audit-report template text. Do not report it as a finding without "
+                "reading the filing.")
+    if annual_matched:
+        return ("changed_over_time",
+                f"Present in {annual_matched} of {annual_on_file} annual reports — "
+                "the language is not constant. Language that appears or disappears "
+                "between years is the higher-signal case; read the years that differ.")
+    return ("present_non_annual",
+            "Appears outside the annual reports (for example in an 8-K or a "
+            "registration statement), which points to a discrete event rather than "
+            "standing language. Read the filing.")
+
+
+def _pack_result(name: str, spec: dict, comp: dict, annual_on_file: int) -> dict:
+    # Two queries per signal: one unscoped for reach and examples, one scoped to
+    # annual reports for the count the classification actually turns on.
+    payload = _efts_search(spec["phrase"], comp["cik10"])
+    annual_payload = _efts_search(spec["phrase"], comp["cik10"], forms=["10-K"])
+
+    matched: list[dict] = []
+    seen: set[str] = set()
+    for hit in _hits(payload):
+        source = hit.get("_source", {})
+        accn = source.get("adsh") or hit.get("_id", "").split(":")[0]
+        if accn in seen:
+            continue
+        seen.add(accn)
+        matched.append({
+            "accession": accn,
+            "form": source.get("form"),
+            "filed": source.get("file_date"),
+            "url": _filing_index_url(comp["cik"], accn),
+        })
+
+    total = _total(payload)
+    # Distinct filings, not `total` -- `total` counts documents, and a 10-K plus
+    # two matching exhibits would otherwise read as three annual reports.
+    annual_matched = min(_distinct_filings(annual_payload), annual_on_file)
+    assessment, note = _classify(total, annual_matched, annual_on_file)
+    return {
+        "signal": name,
+        "phrase": spec["phrase"],
+        "severity": spec["severity"],
+        "why_it_matters": spec["why"],
+        "present": total > 0,
+        "documents_matched": total,
+        "annual_reports_matched": annual_matched,
+        "annual_reports_on_file": annual_on_file,
+        "assessment": assessment,
+        "assessment_note": note,
+        # Newest first, capped: the point is to give the model somewhere to look,
+        # not to enumerate twenty years of identical risk-factor pages.
+        "examples": sorted(matched, key=lambda m: m["filed"] or "", reverse=True)[:4],
+    }
+
+
+def scan_disclosure_signals(query: str,
+                            extra_phrases: Optional[list[str]] = None) -> dict:
+    """Sweep a company's filings for the disclosure language a screen turns on."""
+    comp = _resolve_cik(query)
+    annual_on_file = len(_annual_accessions(comp))
+
+    signals = [_pack_result(name, spec, comp, annual_on_file)
+               for name, spec in DISCLOSURE_PACKS.items()]
+
+    for phrase in (extra_phrases or []):
+        if not isinstance(phrase, str) or not phrase.strip():
+            continue
+        signals.append(_pack_result(
+            phrase.strip(),
+            {"phrase": phrase.strip(), "severity": "unrated",
+             "why": "Caller-supplied phrase; no curated interpretation. Note that "
+                    "an over-specific phrase yields a false 'absent'."},
+            comp, annual_on_file,
+        ))
+
+    absent = [s["signal"] for s in signals if s["assessment"] == "absent"]
+    worth_reading = [s["signal"] for s in signals
+                     if s["assessment"] in ("changed_over_time", "present_non_annual")]
+
+    return {
+        "company": comp,
+        "annual_reports_on_file": annual_on_file,
+        "signals": signals,
+        "summary": {
+            "absent": absent,
+            "worth_reading": worth_reading,
+            "likely_boilerplate": [s["signal"] for s in signals
+                                   if s["assessment"] == "likely_boilerplate"],
+        },
+        "coverage": f"EDGAR full-text search indexes filings from "
+                    f"{FULL_TEXT_COVERAGE_FROM} onward only.",
+        "how_to_use": (
+            "`absent` signals are reportable as-is — a phrase that never appears is a "
+            "real negative finding. Everything else is EVIDENCE, not a conclusion: a "
+            "hit means the words are in the filing, not that the condition applies. "
+            "Before reporting any present signal, read the surrounding text via "
+            "get_risk_factors or the linked filing. These are deliberately NOT part "
+            "of `flags` from compute_screening_metrics, which stays reserved for red "
+            "flags code can verify arithmetically."
+        ),
+    }
+
+
+# --------------------------------------------------------------------------- #
 # Risk factors (Item 1A of the latest 10-K)
 # --------------------------------------------------------------------------- #
 

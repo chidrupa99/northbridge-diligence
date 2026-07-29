@@ -13,11 +13,20 @@ Env:  EDGAR_USER_AGENT="Chidrupa Mamunooru chidrupa.mamunooru@example.com"
 
 from __future__ import annotations
 
-from mcp.server.fastmcp import FastMCP
+# The MCP SDK renamed FastMCP to MCPServer in 2.0. Both expose the same .tool()
+# decorator and .run(), so supporting each is a two-line import rather than a
+# version pin -- and a pin would be the wrong fix: requirements.txt said
+# `mcp>=1.2.0`, which resolves to 2.x today, so the documented setup raised
+# ImportError before reaching a single tool. tests/test_server.py now imports this
+# module so the break cannot recur silently.
+try:                                          # SDK >= 2.0
+    from mcp.server.mcpserver import MCPServer as _Server
+except ImportError:                           # SDK 1.x
+    from mcp.server.fastmcp import FastMCP as _Server
 
 import edgar_client as ec
 
-mcp = FastMCP("northbridge-diligence")
+mcp = _Server("northbridge-diligence")
 
 
 def _safe(fn, *args, **kwargs) -> dict:
@@ -110,6 +119,36 @@ def get_risk_factors(query: str) -> dict:
     guess — flag that to the user so they open the filing directly.
     """
     return _safe(ec.get_risk_factors, query)
+
+
+@mcp.tool()
+def scan_disclosure_signals(query: str,
+                            extra_phrases: list[str] | None = None) -> dict:
+    """Sweep a company's filings for the risk LANGUAGE that never appears in the
+    numbers: going-concern doubt, material weaknesses, restatements, covenant
+    breaches, customer concentration, goodwill impairment. Use this alongside
+    compute_screening_metrics for the risk-signals part of a screen — the
+    financial tools cannot see any of it.
+
+    Each signal comes back with a computed `assessment`, and that is the field to
+    read first:
+      * "absent"             — the phrase appears in no filing since 2001. This is
+                               a real negative finding; report it as one.
+      * "likely_boilerplate" — present in EVERY annual report, so it is standing
+                               risk-factor or audit-report template text. Do NOT
+                               report it as a finding without reading the filing.
+      * "changed_over_time"  — present in some years and not others. The highest-
+                               signal case; read the years that differ.
+      * "present_non_annual" — appears outside the 10-Ks, so likely a discrete
+                               event. Read the filing.
+
+    A hit means the words are in the document, NOT that the condition applies.
+    Verify anything present via get_risk_factors or the linked filing before
+    writing it up. These signals are deliberately separate from `flags` in
+    compute_screening_metrics, which stays reserved for red flags code can verify
+    arithmetically. `extra_phrases` appends your own exact phrases to the sweep.
+    """
+    return _safe(ec.scan_disclosure_signals, query, extra_phrases=extra_phrases)
 
 
 @mcp.tool()

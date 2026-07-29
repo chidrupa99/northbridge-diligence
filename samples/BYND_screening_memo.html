@@ -114,6 +114,13 @@
   <div class="flag amber"><span class="sev m">Medium</span><div><span class="code">REVENUE_DECLINE</span> — Revenue fell 15.6% year over year, against a −5.0% flag threshold. <span class="ref">[S1]</span></div></div>
   <div class="flag amber"><span class="sev m">Medium</span><div><span class="code">CASH_BURN</span> — Operating cash flow is negative (−$144.9M) in the latest fiscal year. <span class="ref">[S1]</span></div></div>
 
+  <h2>Disclosure signals — full-text search</h2>
+  <div class="src" style="margin-bottom:6px">Every BYND filing since 2001. The boilerplate-vs-signal verdict is computed by comparing matched filings against the 7 annual reports on file — not judged in the write-up.</div>
+  <div class="flag grey"><span class="sev i">Absent</span><div><span class="code">GOING_CONCERN</span> — <i>"substantial doubt"</i> appears in <b>no</b> BYND filing <span class="ref">[S5]</span>. Material here: despite negative equity, −$144.9M of burn and a −121% operating margin, the auditor has still not raised going-concern doubt. Corroborates that the $203.9M cash runway is real.</div></div>
+  <div class="flag amber"><span class="sev m">Verified</span><div><span class="code">CUSTOMER_CONCENTRATION</span> — present in 3 of 7 annual reports. Read and confirmed: <i>"DOT Foods, Inc. accounted for approximately 13%, 12% and 12% of our gross revenues"</i> in FY2025/24/23; no other customer above 10% <span class="ref">[S1]</span>. Concentration is <b>rising as revenue falls</b> — a real diligence workstream.</div></div>
+  <div class="flag grey"><span class="sev i">Boilerplate</span><div><span class="code">MATERIAL_WEAKNESS</span> — 25 documents matched, but the phrase appears in <b>all 7</b> annual reports, and Item 9A of the FY2025 10-K concludes controls <b>were effective</b> <span class="ref">[S1]</span>. Every hit is the auditor describing its own testing method. <b>Not a finding</b> — shown because an unverified search would have reported a control failure that does not exist.</div></div>
+  <div class="flag grey"><span class="sev i">Absent</span><div><span class="code">GOODWILL_IMPAIRMENT</span> — no hits <span class="ref">[S5]</span>; consistent with a balance sheet carrying no goodwill.</div></div>
+
   <h2>Risk signals — qualitative (from filing text)</h2>
   <ul>
     <li>The FY2025 10-K's own risk-factor summary leads with <i>"our history of losses and negative cash flows from operating activities"</i> and <i>"weakness in the plant-based meat category, including ongoing and persistent declines in demand"</i><span class="ref">[S1]</span>.</li>
@@ -137,6 +144,8 @@
     <li><code>total_liabilities</code> is not populated — the filer does not tag the <code>Liabilities</code> concept in this window. Reported as absent, never estimated.</li>
     <li>Sources point at the filing each figure was <i>actually read from</i>, under an <code>as_last_reported</code> restatement policy: FY2023–FY2025 from the FY2025 10-K, FY2022 from the FY2024 10-K, FY2021 from the FY2023 10-K (prior-year comparatives).</li>
     <li>All figures are annual (10-K) US-GAAP XBRL as filed. No restatements detected in this window.</li>
+    <li><b>Covenant compliance was not checked.</b> No exact search phrase proved reliable enough to ship — candidates returned zero hits even against genuinely distressed filers — so this is a stated gap, not a silent "absent". With ~$416M of debt and no equity cushion, read the covenant terms from the debt footnote manually.</li>
+    <li>Full-text search reaches back to 2001 only. "Absent" means the phrase has not appeared since then, not that it never did.</li>
     <li>A first-pass screen from public filings only — not investment advice, a valuation, or a full diligence review.</li>
   </ul>
 
@@ -147,6 +156,7 @@
     <tr><td>S2</td><td style="text-align:left"><a href="https://www.sec.gov/Archives/edgar/data/1655210/000165521025000034/0001655210-25-000034-index.htm">10-K (FY2024 report)</a></td><td>2025-03-05</td><td style="text-align:left" class="src">0001655210-25-000034</td><td style="text-align:left" class="src">FY2022 figures</td></tr>
     <tr><td>S3</td><td style="text-align:left"><a href="https://www.sec.gov/Archives/edgar/data/1655210/000165521024000025/0001655210-24-000025-index.htm">10-K (FY2023 report)</a></td><td>2024-03-01</td><td style="text-align:left" class="src">0001655210-24-000025</td><td style="text-align:left" class="src">FY2021 figures (CAGR base)</td></tr>
     <tr><td>S4</td><td style="text-align:left"><a href="https://www.sec.gov/Archives/edgar/data/1655210/000119312526308001/d57467d8k.htm">8-K (most recent)</a></td><td>2026-07-17</td><td style="text-align:left" class="src">0001193125-26-308001</td><td style="text-align:left" class="src">Recent events</td></tr>
+    <tr><td>S5</td><td style="text-align:left"><a href="https://efts.sec.gov/LATEST/search-index?q=%22substantial+doubt%22&amp;ciks=0001655210">EDGAR full-text search — all BYND filings, 2001–present</a></td><td>—</td><td style="text-align:left" class="src">—</td><td style="text-align:left" class="src">Disclosure-signal presence / absence</td></tr>
   </table>
 
   <div class="foot">

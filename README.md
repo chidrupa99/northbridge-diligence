@@ -13,7 +13,7 @@ Trust is enforced structurally, not by asking the model nicely. Three things are
 
 1. **Every figure carries its filing** — accession number, form type, period end, XBRL tag, and a resolvable EDGAR URL.
 2. **The code computes; the model narrates.** Ratios, the judgment of whether a ratio is *meaningful*, and the risk flags are all produced in Python against fixed thresholds. The skill is forbidden from doing arithmetic or inventing a flag.
-3. **The behaviour is pinned by tests** — 45 offline tests plus a golden-set regression, so a tag-mapping tweak that would silently change a margin fails the build instead.
+3. **The behaviour is pinned by tests** — 67 offline tests plus a golden-set regression, so a tag-mapping tweak that would silently change a margin fails the build instead.
 
 ---
 
@@ -91,7 +91,8 @@ Scoping the toolset was the main judgment call. The principle: **one tool = one 
 | `get_key_financials` | curated multi-year IS/BS/CF, each value source-tagged | The financial-trajectory + capital-structure backbone. Returns `reference_fiscal_year`, `xbrl_tags_used` and `mixed_tag_basis` so the reader can see *how* the series was assembled. |
 | `compute_screening_metrics` | growth, margins, leverage, liquidity — **computed in code** — plus `flags`, `data_quality`, and the `thresholds` used | The client must *trust the numbers*. LLM arithmetic isn't trustworthy, so ratios are calculated in Python, returned with the sourced inputs, and each marked `meaningful: true|false`. |
 | `list_filings` | recent filings + direct EDGAR URLs | Source citation, latest annual/quarterly report, and recent 8-K events worth a second look. |
-| `get_risk_factors` | Item 1A from the latest 10-K | The "risk section worth a second look." Conservative extraction — returns the source URL and a note rather than a guess if it can't isolate the section. |
+| `scan_disclosure_signals` | full-text sweep for going-concern doubt, material weaknesses, customer concentration and goodwill impairment — with a **computed** boilerplate-vs-signal verdict | The numbers cannot show what a company is *worried about*. Two things make this more than a search box: the phrasing is calibrated against real filings, and the judgment of whether a hit means anything is computed rather than narrated — language present in every annual report is template text, language that comes and goes is news. Deliberately kept **out** of `flags`, which stays reserved for red flags code can verify arithmetically. |
+| `get_risk_factors` | Item 1A from the latest 10-K | The "risk section worth a second look," and the verification step for anything `scan_disclosure_signals` reports as present. Conservative extraction — returns the source URL and a note rather than a guess if it can't isolate the section. |
 | `get_financial_concept` | any one metric/US-GAAP tag as a time series | Escape hatch for questions the curated set doesn't cover (R&D, capex). Keeps the curated tools focused while staying flexible. Tag names are validated against a strict pattern before they reach a URL. |
 
 ### Attribution model
@@ -164,7 +165,7 @@ I verified the harness actually bites by moving the current-ratio threshold from
 **What I deliberately left out** (scope discipline — each is a defensible *next* addition, not an oversight):
 
 - **Public comps / peer benchmarking.** High value, but it needs a peer-selection method (SIC is too crude) and multiplies API load. It's the first thing I'd add (see below), built on `get_key_financials`.
-- **Full-text search across filings.** EDGAR's FTS endpoint is powerful but open-ended; for a *screen* the curated financials + Item 1A cover the 80%. Easy to add as one more tool.
+- **Open-ended full-text search.** `scan_disclosure_signals` wraps EDGAR's FTS endpoint, but only behind curated phrases with a computed verdict. A general "search filings for X" tool was deliberately not exposed: an arbitrary phrase gives the model no way to tell boilerplate from news, which is the entire difficulty. `extra_phrases` is the escape hatch, and it carries the caveat.
 - **Quarterly / TTM data.** The screen is annual-first for signal clarity. The plumbing (`annual_series`) generalizes to quarterly with a filter change.
 - **Insider / ownership (Forms 3/4/5) and institutional holdings.** Useful for a deeper look, noise for a first pass.
 
@@ -174,7 +175,9 @@ I verified the harness actually bites by moving the current-ratio threshold from
 - **"Total debt" is approximated** as long-term + current debt tags; finance-lease and other debt-like items aren't fully assembled. Flagged where it matters.
 - **EBITDA is a proxy** — operating income plus D&A from the cash flow statement. It is not any filer's adjusted definition and shouldn't be compared to one.
 - **Thresholds are one global set.** A 4.0x debt/EBITDA bar means different things in software and in distribution. Industry-relative bands are a real improvement, but they need a defensible peer set first — which is the comps tool.
-- **Risk-factor extraction is heuristic** (heading match on messy HTML); it degrades to "here's the source, read it yourself" instead of fabricating.
+- **Risk-factor extraction is heuristic** (heading match on messy HTML); it degrades to "here's the source, read it yourself" instead of fabricating. The heuristic has been through one real failure: anchoring on the *last* heading match returned 2,958 characters of the wrong section on Dollar General's 10-K — where Item 1C cross-references Item 1A — and reported it as a successful extraction. It now uses the widest start/end pairing to identify the real end marker, then takes the last heading before it, which excludes both contents rows and later cross-references. A filer with a stranger document structure could still defeat it.
+- **Covenant compliance is not searchable.** A covenant pack was built and then removed: `"covenant violation"`, `"waiver from our lenders"` and `"not in compliance with the covenants"` each returned zero hits even against a genuinely distressed filer, while bare `"covenant"` returned 84 (Beyond Meat) and 274 (Target) of pure boilerplate. A pack that always reports "absent" is worse than no pack, because absence is written into the memo as a finding. Stated as a gap instead.
+- **Disclosure phrases trade precision for recall, on purpose.** The first version used the full formal wording — `"material weakness in our internal control over financial reporting"` — which matched **0** Target filings while `"material weakness"` matched 23. An over-specific phrase produces a false `absent`, and that is the most damaging error this tool can make. Precision is recovered downstream by the boilerplate classification and the requirement to read the filing.
 
 ---
 
@@ -191,5 +194,6 @@ It demonstrates the thing that separates a real screen from a naive one. FY2025 
 1. **Comps tool** — given a target, assemble a peer set (SIC + size band, human-overridable) and return side-by-side growth/margin/leverage tables with the same attribution. This is the highest-leverage addition for a PE screen, and it's also what makes industry-relative thresholds defensible.
 2. **Widen the golden set** — the harness exists; it needs more filers through it. 15–20 companies (clean large-cap, foreign filer, recent IPO, restated, spin-off) with expected behaviour, run in CI. Trust needs tests, and the tests need coverage.
 3. **Segment & guidance extraction** — pull segment revenue and MD&A highlights from the 10-K, so the memo speaks to *business mix*, not just consolidated numbers.
-4. **Smarter risk extraction** — replace the heading heuristic with a structured pass that returns individual risk factors with severity tags, and diff Item 1A year-over-year to surface *newly added* risks (often the most telling signal).
-5. **Disk-backed cache with an EDGAR freshness check** — the in-process cache dies with the process. Persisting `companyfacts` keyed on the filer's latest accession would make repeat screens instant across sessions while still catching new filings.
+4. **Smarter risk extraction** — replace the heading heuristic with a structured pass that returns individual risk factors with severity tags, and diff Item 1A year-over-year to surface *newly added* risks (often the most telling signal). The section extractor now generalises across Items 1A/3/7/9A, so the diff is mostly plumbing; what it needs is a way to align risk factors across years that survives rewording.
+5. **A covenant signal that actually works.** Exact-phrase search failed (see seams). The tractable version reads the debt footnote and Item 7 liquidity discussion directly rather than pattern-matching the whole filing — more work, but it targets the one capital-structure question this screen currently cannot answer.
+6. **Disk-backed cache with an EDGAR freshness check** — the in-process cache dies with the process. Persisting `companyfacts` keyed on the filer's latest accession would make repeat screens instant across sessions while still catching new filings.

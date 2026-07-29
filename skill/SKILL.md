@@ -59,9 +59,14 @@ Call them in roughly this order. They all accept a ticker or a company name.
    screen is anchored to, and every point-in-time figure belongs to it.
 4. `compute_screening_metrics` — growth, margins, leverage, liquidity, **plus the
    `flags` and `data_quality` blocks**. See below for how to read it.
-5. `get_risk_factors` — Item 1A from the latest 10-K for qualitative risk signals.
-6. `list_filings` — to cite sources and surface recent 8-Ks worth a second look.
-7. `get_financial_concept` — only if the user asks about something the curated set
+5. `scan_disclosure_signals` — the risk **language** the numbers cannot show:
+   going-concern doubt, material weaknesses, customer concentration, goodwill
+   impairment. Read each signal's computed `assessment` before its hit count; see
+   below.
+6. `get_risk_factors` — Item 1A from the latest 10-K. Use it to *verify* anything
+   `scan_disclosure_signals` reported as present, and for qualitative colour.
+7. `list_filings` — to cite sources and surface recent 8-Ks worth a second look.
+8. `get_financial_concept` — only if the user asks about something the curated set
    doesn't cover (e.g. R&D spend, capex).
 
 If a tool returns `{"error": ...}`, don't invent data. Note the gap in the memo's
@@ -118,13 +123,52 @@ If a tool returns `{"error": ...}`, don't invent data. Note the gap in the memo'
 - Format large dollar figures readably ($1.2B, $340M). Show ratios to one decimal
   or as a %. Show the fiscal year on every figure.
 
-## Qualitative scan (in addition to the computed flags)
+## Reading `scan_disclosure_signals`
 
-The code cannot read prose. After you've reported every `high`/`medium` flag,
-scan the Item 1A text and recent 8-Ks for: going-concern language, restatement
-or auditor-change disclosures, covenant waivers, material litigation, and
-leadership churn. Report these as **qualitative observations**, clearly separated
-from the computed flags, each with its own `[S#]`.
+Financial statements say what happened; the prose says what the company is
+worried about. This tool sweeps the filings for the language a screen turns on.
+
+**Read `assessment` before you read anything else.** It is computed by comparing
+the filings that matched against the annual reports on file, so it is
+reproducible in the same way the flags are:
+
+| `assessment` | What it means | What to do |
+|---|---|---|
+| `absent` | Phrase appears in no filing since 2001 | **Report it.** A genuine negative finding — say so plainly. |
+| `likely_boilerplate` | Present in *every* annual report | Standing template text. **Do not report as a finding** without reading the filing. |
+| `changed_over_time` | Present in some years, not others | Highest-signal case. Read the years that differ. |
+| `present_non_annual` | Appears outside the 10-Ks | Likely a discrete event. Read the filing. |
+
+**A hit is not a finding.** The words being in the document does not mean the
+condition applies — risk-factor sections describe hypothetical material
+weaknesses in the same language an auditor uses to report a real one. Beyond Meat
+matches "material weakness" in all seven of its 10-Ks while its Item 9A concludes
+controls were effective; every hit is the auditor describing its own testing
+method. Before writing up any present signal, verify it with `get_risk_factors`
+or open the linked filing.
+
+**These are not flags.** `flags` from `compute_screening_metrics` stays the
+authoritative list of red flags code can verify arithmetically. Disclosure
+signals are evidence, and belong in their own subsection with their verification
+status stated. Do not merge the two, and do not promote a disclosure signal into
+a flag.
+
+Known gap: covenant compliance. No exact phrase proved reliable enough to ship —
+the candidates returned zero hits even for genuinely distressed filers, and a
+pack that always reports "absent" would be actively misleading. If capital
+structure looks tight, say that covenant terms were not checked.
+
+## Qualitative scan (beyond both of the above)
+
+After the computed flags and the disclosure sweep, read the Item 1A text and
+recent 8-Ks for what neither covers: material litigation, auditor changes,
+leadership churn, customer or supplier names given with a concentration figure.
+Report these as **qualitative observations**, clearly separated from the computed
+flags, each with its own `[S#]`.
+
+The tense test is the useful filter. *"If we were to lose a major customer"* is
+boilerplate; *"in fiscal 2025 our largest customer accounted for 14% of net
+sales"* is a finding.
 
 ## Memo template
 
@@ -162,6 +206,12 @@ and the single most important takeaway from this screen.}
 *Computed by the screening tool against fixed thresholds — every high/medium flag appears here.*
 - **{FLAG_CODE}** ({severity}) — {message, with the threshold that fired} [S#]
 - ...
+
+*Disclosure signals (from full-text search of the filings):*
+- **{signal}** ({severity}) — {assessment, and what it means}. {If present:
+  what the filing actually says, having read it} [S#]
+- Searched and not found: {list the `absent` signals — this is a real finding}
+
 *Qualitative (from filing text, not computed):*
 - {1-3 salient items paraphrased from Item 1A risk factors [S#]}
 - {Any recent 8-K worth a second look [S#]}

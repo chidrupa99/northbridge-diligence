@@ -101,7 +101,7 @@ flowchart TB
     SKILL["Orchestrate tool calls · select what matters · compose memo<br/>NARRATES the code's flags — never computes, never invents one<br/>unmeaningful metrics quoted as caveats · data gaps surfaced honestly"]
   end
 
-  subgraph DATAL["2 · Data layer — MCP server, 7 source-attributed tools (serves)"]
+  subgraph DATAL["2 · Data layer — MCP server, 8 source-attributed tools (serves)"]
     direction LR
     T1["resolve_company"]
     T2["get_company_profile"]
@@ -114,7 +114,7 @@ flowchart TB
   end
 
   subgraph ADAPT["3 · Swappable adapter — edgar_client.py"]
-    ADP["fetch · parse · normalize · attach a SOURCE to every value<br/>compute ratios · judge meaningfulness · raise risk flags<br/>45 offline tests + golden-set regression pin this behaviour"]
+    ADP["fetch · parse · normalize · attach a SOURCE to every value<br/>compute ratios · judge meaningfulness · raise risk flags<br/>67 offline tests + golden-set regression pin this behaviour"]
   end
 
   subgraph SOURCES["4 · Data source — the ONLY layer that changes on a live deal"]
@@ -200,7 +200,7 @@ One screen, deal-lead-readable in ~2 minutes:
 
 ## 10. Scope, phasing & roadmap
 
-**v1 (built).** The seven tools; the code-side ratio, meaningfulness and flag engine; the skill; the memo (Markdown + HTML); structural attribution; error handling and retries; a two-call-per-screen data path; 45 offline tests plus a golden-set regression; README; one live sample (Beyond Meat — demonstrates catching a one-time-gain "profit mirage").
+**v1 (built).** The eight tools; the code-side ratio, meaningfulness and flag engine; the skill; the memo (Markdown + HTML); structural attribution; error handling and retries; a two-call-per-screen data path; 67 offline tests plus a golden-set regression; README; one live sample (Beyond Meat — demonstrates catching a one-time-gain "profit mirage").
 
 **v2 (next — priority order):**
 1. **Comps tool** — auto-assemble a peer set (SIC + size band, human-overridable) with side-by-side metrics. Highest-leverage add for a PE screen, and the prerequisite for industry-relative thresholds.

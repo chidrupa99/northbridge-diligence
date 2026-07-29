@@ -448,3 +448,87 @@ def test_short_cross_reference_section_is_still_extracted():
 def test_unknown_section_name_is_rejected():
     with pytest.raises(ec.EdgarError):
         ec.extract_section("some text", "item_99_nonexistent")
+
+
+# --------------------------------------------------------------------------- #
+# Disclosure signals (EDGAR full-text search)
+#
+# The failure this whole area guards against: reporting "absent" when the
+# language is actually there. Absence is written into the memo as a finding, so a
+# false negative is a false statement to the deal team -- worse than a noisy hit,
+# which the verification step catches.
+# --------------------------------------------------------------------------- #
+
+def test_going_concern_absent_for_a_company_that_has_none():
+    res = ec.scan_disclosure_signals("BYND")
+    signal = next(s for s in res["signals"] if s["signal"] == "going_concern")
+    assert signal["assessment"] == "absent"
+    assert signal["documents_matched"] == 0
+
+
+def test_language_in_every_annual_report_is_called_boilerplate():
+    # Beyond Meat matches "material weakness" in all seven of its 10-Ks, yet its
+    # Item 9A concludes controls were effective -- every hit is the auditor
+    # describing its own testing methodology. Reporting that as a control failure
+    # is exactly the mistake this classification exists to prevent.
+    res = ec.scan_disclosure_signals("BYND")
+    signal = next(s for s in res["signals"] if s["signal"] == "material_weakness")
+    assert signal["annual_reports_matched"] == signal["annual_reports_on_file"]
+    assert signal["assessment"] == "likely_boilerplate"
+
+
+def test_language_present_in_only_some_years_is_flagged_for_reading():
+    # Concentration language that comes and goes is the higher-signal case.
+    res = ec.scan_disclosure_signals("BYND")
+    signal = next(s for s in res["signals"]
+                  if s["signal"] == "customer_concentration")
+    assert 0 < signal["annual_reports_matched"] < signal["annual_reports_on_file"]
+    assert signal["assessment"] == "changed_over_time"
+
+
+def test_annual_match_count_is_filings_not_documents():
+    # EDGAR's `total` counts matching documents; a 10-K plus two matching
+    # exhibits is three. Compared against a count of filings that produced
+    # "20 of 11 annual reports" before the units were reconciled.
+    res = ec.scan_disclosure_signals("TGT")
+    for signal in res["signals"]:
+        assert signal["annual_reports_matched"] <= signal["annual_reports_on_file"]
+
+
+def test_healthy_retailer_shows_no_distress_language():
+    res = ec.scan_disclosure_signals("TGT")
+    assert "going_concern" in res["summary"]["absent"]
+    assert "customer_concentration" in res["summary"]["absent"]
+
+
+def test_every_signal_carries_severity_and_rationale():
+    # The model narrates these; it is not asked to decide which matter.
+    for signal in ec.scan_disclosure_signals("BYND")["signals"]:
+        assert signal["severity"]
+        assert signal["why_it_matters"]
+        assert signal["assessment_note"]
+
+
+def test_present_signals_link_to_the_filings_to_read():
+    res = ec.scan_disclosure_signals("BYND")
+    present = [s for s in res["signals"] if s["present"]]
+    assert present
+    for signal in present:
+        assert signal["examples"]
+        assert all(e["url"] and e["accession"] for e in signal["examples"])
+
+
+def test_result_tells_the_model_a_hit_is_not_a_finding():
+    res = ec.scan_disclosure_signals("BYND")
+    assert "not that the condition applies" in res["how_to_use"]
+    # Disclosure signals stay out of `flags`, which is reserved for red flags
+    # code can verify arithmetically.
+    assert "flags" in res["how_to_use"]
+
+
+def test_curated_phrases_stay_short_enough_to_match_real_filings():
+    # The first version used the full formal wording -- "material weakness in our
+    # internal control over financial reporting" -- which matched 0 Target
+    # filings while "material weakness" matched 23. Length is the tell.
+    for name, spec in ec.DISCLOSURE_PACKS.items():
+        assert len(spec["phrase"].split()) <= 5, f"{name} phrase is over-specific"

@@ -42,6 +42,27 @@ class _FakeResponse:
         return json.loads(self._payload)
 
 
+def _efts_fixture(url: str) -> pathlib.Path | None:
+    """Map a full-text search URL back to its recorded response.
+
+    Keyed on CIK plus which curated phrase was asked for, rather than on the
+    whole query string, so a reworded phrase does not silently fall through to a
+    404 and turn a real assertion into a vacuous one.
+    """
+    from urllib.parse import parse_qs, urlparse
+
+    params = parse_qs(urlparse(url).query)
+    cik = (params.get("ciks") or [""])[0]
+    phrase = (params.get("q") or [""])[0].strip('"')
+    # The form-scoped query is a separate recording: its total is what the
+    # boilerplate classification compares against.
+    suffix = "_10K" if params.get("forms") else ""
+    for name, spec in ec.DISCLOSURE_PACKS.items():
+        if spec["phrase"] == phrase:
+            return FIXTURES / f"efts_{cik}_{name}{suffix}.json"
+    return None
+
+
 def _fixture_for(url: str) -> pathlib.Path | None:
     if url.endswith("company_tickers.json"):
         return FIXTURES / "company_tickers.json"
@@ -49,6 +70,8 @@ def _fixture_for(url: str) -> pathlib.Path | None:
         return FIXTURES / f"companyfacts_CIK{url.split('CIK')[-1]}"
     if "/submissions/CIK" in url:
         return FIXTURES / f"submissions_CIK{url.split('CIK')[-1]}"
+    if "efts.sec.gov" in url:
+        return _efts_fixture(url)
     return None
 
 
