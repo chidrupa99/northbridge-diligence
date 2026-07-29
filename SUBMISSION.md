@@ -36,8 +36,8 @@ Each is provided as Markdown and as a self-contained HTML one-pager.
 | [`scripts/doctor.py`](scripts/doctor.py) | Install verification — 9 live checks, each printing its own fix |
 | [`DEVELOPING.md`](DEVELOPING.md) | Engineer handoff: test harness, fixtures, tuning knobs, 11 invariants, gotchas |
 | [`DEPLOYMENT.md`](DEPLOYMENT.md) | Client-side install: security posture, egress requirements, troubleshooting |
-| [`PRD_Northbridge_Screening_Assistant.md`](PRD_Northbridge_Screening_Assistant.md) | Product framing: problem, requirements, roadmap |
-| [`architecture_flow.png`](architecture_flow.png) | System diagram (Mermaid source and an HTML viewer alongside) |
+| [`docs/PRD.md`](docs/PRD.md) | Product framing: problem, requirements, roadmap |
+| [`docs/architecture_flow.png`](docs/architecture_flow.png) | System diagram (Mermaid source and an HTML viewer alongside) |
 
 ## The one-line version
 
@@ -51,7 +51,7 @@ actually do.
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+pip install -e .
 export EDGAR_USER_AGENT="Your Org you@example.com"
 python scripts/doctor.py
 ```

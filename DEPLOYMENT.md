@@ -49,10 +49,10 @@ If you cloned the git repo instead, replace the `unzip` line with `git clone <ur
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+pip install -e .
 ```
 
-`python3 -m venv .venv` creates a **virtual environment** — a private Python installation inside the project folder, so the four libraries this tool needs (`mcp`, `requests`, `beautifulsoup4`, `lxml`) do not touch the system Python other tools may depend on. `source .venv/bin/activate` switches the current terminal to use it. `pip install -r requirements.txt` then reads the dependency list and downloads them into that private environment.
+`python3 -m venv .venv` creates a **virtual environment** — a private Python installation inside the project folder, so the four libraries this tool needs (`mcp`, `requests`, `beautifulsoup4`, `lxml`) do not touch the system Python other tools may depend on. `source .venv/bin/activate` switches the current terminal to use it. `pip install -e .` reads `pyproject.toml`, installs those dependencies, and puts this project's own `edgar-mcp` command on the venv's PATH.
 
 ### 3. Set the SEC contact header
 
@@ -82,7 +82,7 @@ This one is not a shell command. It edits a **JSON configuration file** on disk 
 
 - **Claude Desktop (macOS):** `~/Library/Application Support/Claude/claude_desktop_config.json` — easiest opened from Claude Desktop → Settings → Developer → Edit Config.
 - **Claude Desktop (Windows):** `%APPDATA%\Claude\claude_desktop_config.json` — same route through Settings → Developer.
-- **Claude Code:** either a project-level `.mcp.json` in the working folder, or `claude mcp add northbridge-diligence /path/to/.venv/bin/python /path/to/src/server.py` from a terminal.
+- **Claude Code:** either a project-level `.mcp.json` in the working folder, or `claude mcp add northbridge-diligence /path/to/.venv/bin/edgar-mcp` from a terminal.
 
 **Add — do not replace.** That file may already have content: `preferences`, `mcpServers` for other tools, `coworkUserFilesPath`. Overwriting it wipes what is already there. If `mcpServers` does not exist yet, add the whole key as a sibling of anything already present. If it does, add `northbridge-diligence` inside it alongside the other servers.
 
@@ -92,8 +92,7 @@ The block to add — with **your real paths**, not `/absolute/path/to/...`:
 {
   "mcpServers": {
     "northbridge-diligence": {
-      "command": "/Users/<user>/Applications/northbridge-diligence/.venv/bin/python",
-      "args":    ["/Users/<user>/Applications/northbridge-diligence/src/server.py"],
+      "command": "/Users/<user>/Applications/northbridge-diligence/.venv/bin/edgar-mcp",
       "env":     { "EDGAR_USER_AGENT": "Northbridge Capital Partners research@northbridge.example" }
     }
   }
@@ -104,8 +103,8 @@ Then **restart Claude Desktop** — it only reads this file at launch.
 
 Four things that catch people out here:
 
-- **Nobody runs `src/server.py` by hand.** It speaks MCP over *stdio*, so it waits silently on standard input — run it in a terminal and you get a cursor that never returns, which looks broken but is correct. The client launches it, the way an operating system talks to a plugged-in device.
-- **Point `command` at the virtualenv's Python**, not bare `python`. The client starts the server in its own environment and will not inherit an activated venv, so bare `python` usually resolves to a system install without the dependencies.
+- **Nobody runs `edgar-mcp` by hand.** It speaks MCP over *stdio*, so it waits silently on standard input — run it in a terminal and you get a cursor that never returns, which looks broken but is correct. The client launches it, the way an operating system talks to a plugged-in device.
+- **Point `command` at the virtualenv's `edgar-mcp`**, not a bare `edgar-mcp`. The client starts the server in its own environment and will not inherit an activated venv, so an unqualified command will not be found.
 - **Absolute paths only.** No `~`, no relative paths. The client is not running from a shell so tilde-expansion does not happen.
 - **The `env` block here is separate from the `export` in step 3.** That one covered `doctor.py` in your terminal; this one covers the server as the client runs it. Both need setting, with the same value.
 
@@ -132,6 +131,6 @@ A correct result has `[S1]`-style markers throughout and a Sources table at the 
 | `403` from every SEC host | `EDGAR_USER_AGENT` unset or rejected — check the `env` block in step 5, not just the shell |
 | Client silently ignores the config after you edited it | Malformed JSON (missing comma, unmatched bracket). Run the file through a JSON validator, then restart the client |
 | Config disappeared after edit | The file got overwritten instead of merged — restore, then add the `mcpServers` key alongside the other keys rather than replacing them |
-| Client reports the server failed to start | `command` points at a Python without the dependencies — use the venv path |
+| Client reports the server failed to start | `command` does not resolve — use the absolute path to `.venv/bin/edgar-mcp` |
 | Skill never triggers, answers come without citations | `skill/` not copied to `~/.claude/skills/` |
 

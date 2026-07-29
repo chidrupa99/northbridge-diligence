@@ -4,7 +4,7 @@ For an engineer picking this up to extend or maintain it. If you only need to
 *deploy* it, the README's deployment section is all you need — this file is the
 other half.
 
-Read the next section before changing anything in `src/`. Everything else here
+Read the next section before changing anything in `src/northbridge_diligence/`. Everything else here
 is reference.
 
 ---
@@ -14,7 +14,7 @@ is reference.
 **Code computes, the model narrates.**
 
 Every number, every ratio, every judgment about whether a ratio is *meaningful*,
-and every red flag is decided in Python — in `src/edgar_client.py`. The skill is
+and every red flag is decided in Python — in `src/northbridge_diligence/edgar_client.py`. The skill is
 forbidden from doing arithmetic, from inventing a flag, and from suppressing one.
 
 This is not a style preference. It is the falsifiability property the whole tool
@@ -34,21 +34,30 @@ one change that would undo the point of the tool.
 ## Layout
 
 ```
-src/edgar_client.py    ~1,400 lines. ALL logic lives here. Fetch, parse,
-                       normalise, source-attribute, compute, judge, flag.
-src/server.py          Thin MCP shim. 8 tools, each a docstring plus one call
-                       into the client, wrapped in _safe() for a uniform error
-                       envelope. Keep it thin — no logic belongs here.
-skill/SKILL.md         The company-screen skill. Frontmatter name/description
-                       must stay within 64/1024 characters (currently 14/670)
-                       or the skill silently fails to load.
-scripts/doctor.py      Install verification. Live calls, not fixtures.
-tests/                 65 unit tests + 2 golden-set cases. Offline, ~1s.
-samples/               One worked BYND memo, in .md and self-contained .html.
-README.md              Reviewer- and deployment-facing. Design decisions, seams.
-PRD_*.md               Product framing: problem, requirements, roadmap.
-architecture_flow.*    Mermaid source, plus rendered svg/png and an html viewer.
+pyproject.toml              Dependencies, metadata, the `edgar-mcp` entry point,
+                            and pytest config. One file, not four.
+src/northbridge_diligence/
+  __init__.py               Package docstring; states the two-layer split.
+  edgar_client.py           ~1,500 lines. ALL logic lives here. Fetch, parse,
+                            normalise, source-attribute, compute, judge, flag.
+  server.py                 Thin MCP shim. 8 tools, each a docstring plus one
+                            call into the client, wrapped in _safe() for a
+                            uniform error envelope. Keep it thin — no logic here.
+skill/SKILL.md              The company-screen skill. Frontmatter name and
+                            description must stay within 64/1024 characters
+                            (currently 14/670) or the skill silently fails to load.
+scripts/doctor.py           Install verification. Live calls, not fixtures.
+tests/                      65 unit tests + 2 golden-set cases. Offline, ~1s.
+samples/                    Two worked memos (BYND, TGT) in .md and .html.
+README.md                   Reviewer-facing. Design decisions, seams.
+DEPLOYMENT.md               Client-side install.
+docs/PRD.md                 Product framing: problem, requirements, roadmap.
+docs/architecture_flow.*    Mermaid source, plus rendered svg/png and html viewer.
 ```
+
+The `src/` layout is deliberate: the package is installed (`pip install -e .`)
+rather than imported from an adjacent directory, so tests exercise it exactly as
+a consumer would. That is why no test manipulates `sys.path`.
 
 The split between `edgar_client.py` and `server.py` is deliberate and worth
 preserving: all logic lives in the client so it is unit-testable and usable
@@ -62,16 +71,16 @@ off-server, and `server.py` only registers it as MCP tools.
 git clone <repo-url> northbridge-diligence         # or unzip the submission
 cd northbridge-diligence
 python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements-dev.txt                # includes runtime deps
+pip install -e ".[dev]"                # includes runtime deps
 export EDGAR_USER_AGENT="Your Name you@example.com"
 
 python -m pytest             # 67 tests, offline, ~1s
 python scripts/doctor.py     # live checks against real EDGAR
 ```
 
-`requirements-dev.txt` starts with `-r requirements.txt`, so it installs both.
-`doctor.py` needs no dev dependencies, which is why the README's deployment path
-uses it alone.
+The `[dev]` extra adds pytest on top of the runtime dependencies. `doctor.py`
+needs no dev dependencies, which is why the deployment path installs plain
+`pip install -e .` and still gets a working verification step.
 
 To test changes against a real Claude client rather than just pytest, register
 the server in the client's config — see [DEPLOYMENT.md § 5](DEPLOYMENT.md) for
@@ -230,16 +239,16 @@ set is item 5 in the README roadmap for that reason.
 - **`efts.sec.gov` 500s intermittently** under bursts. The existing retry handles
   it; do not add a second retry layer on top.
 - **The MCP SDK renamed `FastMCP` to `MCPServer` in 2.0.** `server.py` imports
-  whichever is present, and `requirements.txt` carries a comment about it. Do not
+  whichever is present, and `pyproject.toml` carries a comment about it. Do not
   narrow that pin without updating the import — `tests/test_server.py` exists
   because this broke the documented setup once and nothing caught it.
 - **Mermaid ignores `direction LR` inside subgraphs** unless nodes are chained
   with invisible links (`~~~`). That is what those chains in the `.mmd` are for —
   do not "clean them up". Render server-side:
   ```bash
-  npx -y @mermaid-js/mermaid-cli@latest -i architecture_flow.mmd -o architecture_flow.svg -b white
+  npx -y @mermaid-js/mermaid-cli@latest -i docs/architecture_flow.mmd -o docs/architecture_flow.svg -b white
   ```
-  Add `-s 2` for the png. `architecture_flow.html` embeds the SVG inline — swap
+  Add `-s 2` for the png. `docs/architecture_flow.html` embeds the SVG inline — swap
   the `<svg>...</svg>` block when you re-render, or the viewer goes stale
   silently.
 

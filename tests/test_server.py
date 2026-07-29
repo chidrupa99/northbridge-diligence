@@ -2,7 +2,7 @@
 
 These exist because of a real break: `requirements.txt` asked for `mcp>=1.2.0`,
 the SDK renamed `FastMCP` to `MCPServer` in 2.0, and the documented setup
-(`pip install -r requirements.txt && python src/server.py`) therefore raised
+(`pip install -e . && edgar-mcp`) therefore raised
 ImportError before reaching a single tool. Nothing caught it, because every other
 test imports `edgar_client` directly and never loads the server.
 

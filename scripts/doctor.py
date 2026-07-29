@@ -221,7 +221,7 @@ def check_server() -> bool:
             False,
             "MCP server",
             f"{type(exc).__name__}: {exc}",
-            fix="""src/server.py could not be imported, so no MCP client will be able to
+            fix="""northbridge_diligence.server could not be imported, so no MCP client will
                    start it either. If this is an ImportError on `mcp`, the SDK version
                    is incompatible — see requirements.txt.""",
         )

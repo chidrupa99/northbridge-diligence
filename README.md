@@ -24,7 +24,7 @@ company name ──► [ company-screen skill ]         (intelligence layer)
                         │  selects tools, narrates the result, writes the memo
                         │  does NOT compute ratios or decide risk
                         ▼
-             [ northbridge-diligence MCP server ]  (data layer, src/server.py)
+             [ northbridge-diligence MCP server ]  (data layer, src/northbridge_diligence/server.py)
                         │  thin MCP shim: decorators + uniform error envelope
                         ▼
              [ edgar_client.py ]                    (all logic: HTTP, XBRL, math, flags)
@@ -56,7 +56,7 @@ cd northbridge-diligence
 
 # 2. Install dependencies into a private virtualenv
 python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+pip install -e .
 
 # 3. Identify yourself to SEC (contact string, not a credential — EDGAR is public)
 export EDGAR_USER_AGENT="Your Org you@example.com"
@@ -76,8 +76,7 @@ cp -r skill ~/.claude/skills/company-screen
 {
   "mcpServers": {
     "northbridge-diligence": {
-      "command": "/absolute/path/to/northbridge-diligence/.venv/bin/python",
-      "args":    ["/absolute/path/to/northbridge-diligence/src/server.py"],
+      "command": "/absolute/path/to/northbridge-diligence/.venv/bin/edgar-mcp",
       "env":     { "EDGAR_USER_AGENT": "Your Org you@example.com" }
     }
   }
@@ -86,7 +85,7 @@ cp -r skill ~/.claude/skills/company-screen
 
 Then **restart the client**. Full walkthrough — where the file lives on each platform, the merge case when other MCP servers are already registered, JSON validation and troubleshooting — in [DEPLOYMENT.md § 5](DEPLOYMENT.md).
 
-Two things that catch people out here: **point `command` at the virtualenv's Python** by absolute path — the client does not inherit an activated venv — and **never run `src/server.py` yourself**. It speaks MCP over stdio, so it waits silently on standard input and looks hung when it is working correctly. The client starts it.
+`edgar-mcp` is a console script `pip install` puts on the virtualenv's PATH, so the config points at a command rather than hardcoding a path into the source tree. Two things that catch people out: **use the absolute path** to the venv's copy — the client does not inherit an activated venv, so an unqualified `edgar-mcp` will not be found — and **never run it yourself**. It speaks MCP over stdio, so it waits silently on standard input and looks hung when it is working correctly. The client starts it.
 
 **To trigger the skill**, say: *"Screen Beyond Meat for the deal team"* — any ticker or company name. A correct result carries `[S1]`-style markers throughout and a Sources table; figures without source markers mean the skill is not being used.
 
