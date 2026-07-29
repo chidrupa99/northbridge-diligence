@@ -48,9 +48,18 @@ If you cloned the git repo instead, replace the `unzip` line with `git clone <ur
 ### 2. Install its Python dependencies
 
 ```bash
-python3 -m venv .venv && source .venv/bin/activate
+python3 scripts/doctor.py                    # confirm Python >= 3.10 BEFORE building
+python3 -m venv .venv
+source .venv/bin/activate                    # Windows: .venv\Scripts\activate
+python -m pip install --upgrade pip          # editable installs need pip >= 21.3
 pip install -e .
 ```
+
+Run `doctor.py` first, before creating the virtualenv. It runs on **any** Python
+version, so a too-old interpreter is reported immediately rather than as a
+confusing dependency failure two steps later. If `python3` is older than 3.10,
+find a newer one (`ls /usr/local/bin/python3.*`, or `brew install python@3.12`)
+and use that name in the `venv` line.
 
 `python3 -m venv .venv` creates a **virtual environment** — a private Python installation inside the project folder, so the four libraries this tool needs (`mcp`, `requests`, `beautifulsoup4`, `lxml`) do not touch the system Python other tools may depend on. `source .venv/bin/activate` switches the current terminal to use it. `pip install -e .` reads `pyproject.toml`, installs those dependencies, and puts this project's own `edgar-mcp` command on the venv's PATH.
 
@@ -70,7 +79,7 @@ The `export` lasts only for this terminal session. In step 5 you set the same va
 python scripts/doctor.py
 ```
 
-Nine checks: Python version, dependencies, the contact header, reachability of each SEC host separately, a live screen of a real company, the 8 registered tools, and the skill's frontmatter. Every failure prints its fix. Exit code is 0 only when all pass, so it can gate a rollout.
+Ten checks: Python version, whether this project itself is installed, dependencies, the contact header, reachability of each SEC host separately, a live screen of a real company, the 8 registered tools, and the skill's frontmatter. Every failure prints its fix. Exit code is 0 only when all pass, so it can gate a rollout.
 
 Do this **before** step 5. Otherwise a broken install first appears as a skill that silently returns nothing inside a Claude conversation — the worst possible place to debug it.
 
@@ -99,6 +108,13 @@ The block to add — with **your real paths**, not `/absolute/path/to/...`:
 }
 ```
 
+On Windows the path is `...\.venv\Scripts\edgar-mcp.exe`. To print the exact
+value to paste, with the virtualenv active:
+
+```bash
+python -c "import shutil; print(shutil.which('edgar-mcp'))"
+```
+
 Then **restart Claude Desktop** — it only reads this file at launch.
 
 Four things that catch people out here:
@@ -113,8 +129,13 @@ If the JSON is malformed — a missing comma, an unmatched bracket — Claude si
 ### 6. Install the skill
 
 ```bash
+mkdir -p ~/.claude/skills
 cp -r skill ~/.claude/skills/company-screen
 ```
+
+The `mkdir -p` is not decorative: `cp` fails with "No such file or directory" if
+`~/.claude/skills/` does not exist yet, which it will not on a machine where the
+Claude client has never loaded a skill.
 
 ### 7. Confirm it works for the analyst
 
@@ -132,5 +153,6 @@ A correct result has `[S1]`-style markers throughout and a Sources table at the 
 | Client silently ignores the config after you edited it | Malformed JSON (missing comma, unmatched bracket). Run the file through a JSON validator, then restart the client |
 | Config disappeared after edit | The file got overwritten instead of merged — restore, then add the `mcpServers` key alongside the other keys rather than replacing them |
 | Client reports the server failed to start | `command` does not resolve — use the absolute path to `.venv/bin/edgar-mcp` |
-| Skill never triggers, answers come without citations | `skill/` not copied to `~/.claude/skills/` |
+| Skill never triggers, answers come without citations | `skill/` not copied to `~/.claude/skills/`, or the `mkdir -p` was skipped and `cp` failed silently in a script |
+| `pip install -e .` fails with a metadata or build error | pip older than 21.3 — run `python -m pip install --upgrade pip` inside the venv first |
 

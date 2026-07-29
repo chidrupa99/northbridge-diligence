@@ -70,8 +70,11 @@ off-server, and `server.py` only registers it as MCP tools.
 ```bash
 git clone <repo-url> northbridge-diligence         # or unzip the submission
 cd northbridge-diligence
-python3 -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev]"                # includes runtime deps
+python3 scripts/doctor.py                    # runs on any Python; checks >= 3.10 first
+python3 -m venv .venv
+source .venv/bin/activate                    # Windows: .venv\Scripts\activate
+python -m pip install --upgrade pip          # editable installs need pip >= 21.3
+pip install -e ".[dev]"                      # runtime + test deps
 export EDGAR_USER_AGENT="Your Name you@example.com"
 
 python -m pytest             # 67 tests, offline, ~1s

@@ -47,30 +47,35 @@ The same blob also hands us every prior-year comparative for free — a FY2025 1
 
 ## Setup
 
-**Prerequisites:** Python 3.10+ (the MCP SDK requires it) and an MCP client — Claude Desktop or Claude Code.
+**Prerequisites:** Python **3.10 or newer** and an MCP client (Claude Desktop or Claude Code). Nothing else — SEC EDGAR is public, so there is no account, API key or cost.
 
 ```bash
-# 1. Get the code onto the machine
-unzip northbridge-diligence-submission.zip     # or: git clone <repo-url>
-cd northbridge-diligence
+# 0. Get the code, and confirm your Python before building anything
+unzip northbridge-diligence-*.zip && cd northbridge-diligence   # or: git clone <url> && cd northbridge-diligence
+python3 scripts/doctor.py                                       # runs on ANY Python; reports if yours is too old
 
-# 2. Install dependencies into a private virtualenv
-python3 -m venv .venv && source .venv/bin/activate
+# 1. Create an isolated environment and install
+python3 -m venv .venv
+source .venv/bin/activate                    # Windows: .venv\Scripts\activate
+python -m pip install --upgrade pip          # editable installs need pip >= 21.3
 pip install -e .
 
-# 3. Identify yourself to SEC (contact string, not a credential — EDGAR is public)
-export EDGAR_USER_AGENT="Your Org you@example.com"
+# 2. Identify yourself to SEC (a contact string, not a credential)
+export EDGAR_USER_AGENT="Your Org you@example.com"    # Windows: set EDGAR_USER_AGENT=...
 
-# 4. Verify — 9 checks; each failure prints its fix
+# 3. Verify — 10 checks, each failure prints its own fix
 python scripts/doctor.py
 
-# 5. Install the skill
+# 4. Install the skill  (mkdir first — the directory may not exist yet)
+mkdir -p ~/.claude/skills
 cp -r skill ~/.claude/skills/company-screen
 ```
 
-`export` sets an **environment variable** — a value the terminal remembers for this session and passes to any program launched from it. SEC returns HTTP 403 without a contact header, so both `doctor.py` and the server need this value. Do step 4 before step 6, or a broken install first appears as a skill silently returning nothing inside a Claude conversation.
+Step 0 matters: `doctor.py` deliberately runs on **any** Python version, so a too-old interpreter is reported in its first line rather than as a confusing dependency error three steps later. If `python3` on your machine is older than 3.10, look for a newer one (`ls /usr/local/bin/python3.*`, or `brew install python@3.12`) and use that name in step 1.
 
-**6. Register the server with your Claude client.** This one is not a shell command — it edits a JSON file the client reads at launch. In Claude Desktop: **Settings → Developer → Edit Config**. **Add** to what is already there rather than replacing:
+`export` sets an **environment variable** — a value the terminal remembers for this session and hands to any program launched from it. SEC returns HTTP 403 to unidentified clients, so both `doctor.py` and the server need it.
+
+**5. Register the server with your Claude client.** Not a shell command — it edits a JSON file the client reads at launch. In Claude Desktop: **Settings → Developer → Edit Config**. **Add** to what is already in that file rather than replacing it:
 
 ```jsonc
 {
@@ -83,9 +88,15 @@ cp -r skill ~/.claude/skills/company-screen
 }
 ```
 
-Then **restart the client**. Full walkthrough — where the file lives on each platform, the merge case when other MCP servers are already registered, JSON validation and troubleshooting — in [DEPLOYMENT.md § 5](DEPLOYMENT.md).
+Then **restart the client**. On Windows the command path is `...\.venv\Scripts\edgar-mcp.exe`. Print the exact path to paste with:
 
-`edgar-mcp` is a console script `pip install` puts on the virtualenv's PATH, so the config points at a command rather than hardcoding a path into the source tree. Two things that catch people out: **use the absolute path** to the venv's copy — the client does not inherit an activated venv, so an unqualified `edgar-mcp` will not be found — and **never run it yourself**. It speaks MCP over stdio, so it waits silently on standard input and looks hung when it is working correctly. The client starts it.
+```bash
+python -c "import shutil; print(shutil.which('edgar-mcp'))"
+```
+
+`edgar-mcp` is a console script `pip install` puts on the virtualenv's PATH, so the config points at a command rather than a file inside the source tree. Two things that catch people out: **use the absolute path** — the client does not inherit an activated venv, so an unqualified `edgar-mcp` will not resolve — and **never run it yourself**. It speaks MCP over stdio, so it waits silently on standard input and looks hung when it is working correctly. The client starts it.
+
+Full walkthrough — config file locations per platform, the merge case when other MCP servers are already registered, JSON validation, troubleshooting — in [DEPLOYMENT.md](DEPLOYMENT.md).
 
 **To trigger the skill**, say: *"Screen Beyond Meat for the deal team"* — any ticker or company name. A correct result carries `[S1]`-style markers throughout and a Sources table; figures without source markers mean the skill is not being used.
 

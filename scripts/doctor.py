@@ -65,9 +65,11 @@ def check_python() -> bool:
         "Python version",
         f"{version.major}.{version.minor}.{version.micro}",
         fix="""The MCP SDK requires Python 3.10 or newer, and this code uses 3.10+
-               type syntax. Install a newer Python and recreate the virtualenv:
-                 python3.11 -m venv .venv && source .venv/bin/activate
-                 pip install -e '.[dev]'""",
+               type syntax. Find a newer interpreter -- try `ls /usr/local/bin/python3.*`
+               or `brew install python@3.12` -- then recreate the virtualenv with it:
+                 <python3.12> -m venv .venv && source .venv/bin/activate
+                 pip install -e '.[dev]'
+               On Windows the activate path is .venv\\Scripts\\activate instead.""",
     )
 
 
@@ -105,6 +107,39 @@ def check_dependencies() -> bool:
     except Exception:
         sdk = "mcp (version unknown)"
     return report(True, "Dependencies", f"{', '.join(found[:3])}, {sdk}")
+
+
+def check_package() -> bool:
+    """Is THIS project installed, not merely present on disk?
+
+    The most likely single mistake: installing the third-party dependencies but
+    not the project itself, or installing into a different Python than the one
+    now running. Both leave every dependency satisfied and
+    `import northbridge_diligence` still failing, so this needs its own check
+    rather than being inferred from the others.
+    """
+    try:
+        import northbridge_diligence
+    except ImportError:
+        return report(
+            False,
+            "Package installed",
+            "northbridge_diligence not importable",
+            fix="""The dependencies are present but this project is not installed.
+                   From the repository root:
+                     pip install -e '.[dev]'
+                   If that reports success and this still fails, pip installed into a
+                   different Python than the one running this script. Compare:
+                     which python && which pip""",
+        )
+    location = getattr(northbridge_diligence, "__file__", "") or ""
+    editable = "site-packages" not in location
+    return report(
+        True,
+        "Package installed",
+        f"v{getattr(northbridge_diligence, '__version__', '?')}"
+        + (" (editable)" if editable else ""),
+    )
 
 
 def check_user_agent() -> str | None:
@@ -262,20 +297,28 @@ def check_skill() -> bool:
         )
     installed = pathlib.Path.home() / ".claude" / "skills" / "company-screen"
     where = "also installed at ~/.claude/skills/" if installed.exists() else \
-            "not yet copied to ~/.claude/skills/ (see README step 5)"
+            "not yet copied to ~/.claude/skills/ — run: " \
+            "mkdir -p ~/.claude/skills && cp -r skill ~/.claude/skills/company-screen"
     return report(True, "Skill", f"{name}, frontmatter valid — {where}")
 
 
 def main() -> int:
     print("\nNorthbridge Diligence — install check\n")
 
+    # Ordered so this script is useful BEFORE anything is installed: the Python
+    # version check runs on any interpreter, so a wrong Python is reported in the
+    # first line rather than as a confusing failure three steps later.
     ok_python = check_python()
     ok_deps = check_dependencies()
-    agent = check_user_agent() if ok_deps else None
+    ok_package = check_package() if ok_deps else None
 
-    if not (ok_python and ok_deps):
+    if not (ok_python and ok_deps and ok_package):
+        if ok_package is None:
+            report(None, "Package installed", "skipped — dependencies missing first")
         report(None, "Remaining checks", "skipped until the above is fixed")
         return summarise()
+
+    agent = check_user_agent()
 
     if agent:
         network_ok = check_hosts(agent)
