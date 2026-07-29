@@ -1,0 +1,59 @@
+flowchart TB
+  subgraph FUNNEL["PE deal funnel — this tool lives at the 'Screen' step"]
+    direction LR
+    F1["Source"] --> F2["SCREEN · this tool"] --> F3["Diligence"] --> F4["Close"] --> F5["Own"] --> F6["Exit"]
+  end
+
+  START(["Analyst: 'Screen this company' by name or ticker"]) --> SKILL
+
+  subgraph INTEL["1 · Intelligence layer — company-screen SKILL"]
+    SKILL["Orchestrate tool calls · select what matters · compose memo<br/>NARRATES the code's flags — never computes, never invents one<br/>unmeaningful metrics quoted as caveats · data gaps surfaced honestly"]
+  end
+
+  subgraph DATAL["2 · Data layer — MCP server (7 source-attributed tools)"]
+    direction LR
+    T1["resolve_company"]
+    T2["get_company_profile"]
+    T3["get_key_financials"]
+    T4["compute_screening_metrics<br/>(ratios + risk flags in code)"]
+    T5["list_filings"]
+    T6["get_risk_factors"]
+    T1 ~~~ T2 ~~~ T3
+    T4 ~~~ T5 ~~~ T6
+  end
+
+  subgraph ADAPT["3 · Swappable adapter — edgar_client.py"]
+    ADP["fetch · parse · normalize · attach a SOURCE to every value<br/>compute ratios · judge meaningfulness · raise risk flags<br/>45 offline tests + golden-set regression pin this behaviour"]
+  end
+
+  subgraph SOURCES["4 · Data source — the ONLY layer that changes on a live deal"]
+    direction LR
+    ED["TODAY: SEC EDGAR API<br/>(public filers)"]
+    VN["real life:<br/>vendor APIs<br/>Capital IQ / PitchBook"]
+    PD["real life:<br/>data-room PDFs and Excel<br/>(private targets)"]
+    IN["real life:<br/>internal CRM / DB / portals"]
+    ED ~~~ VN ~~~ PD ~~~ IN
+  end
+
+  SKILL -->|"tool calls"| DATAL
+  DATAL --> ADAPT
+  ADAPT -->|"fetch"| SOURCES
+  SOURCES -. "returns normalized + attributed data" .-> SKILL
+  SKILL ==>|"composes"| MEMO(["Screening memo<br/>trajectory · capital structure · risk signals · sources<br/>every number links to its source"])
+  MEMO ==> LEAD(["Deal lead: spot-check via sources, then dig in or pass"])
+
+  subgraph PRIN["Principles the flow enforces"]
+    direction LR
+    P1["TRUST<br/>math AND judgment in code,<br/>the model only narrates"]
+    P2["ATTRIBUTION<br/>no source, not in memo"]
+    P3["REPRODUCIBLE<br/>re-run and get<br/>identical flags"]
+    P4["SWAPPABLE<br/>swap the data source,<br/>keep tools and skill"]
+    P1 ~~~ P2 ~~~ P3 ~~~ P4
+  end
+
+  classDef hi fill:#1f3352,stroke:#12203a,color:#fff;
+  classDef today fill:#e7f0ff,stroke:#2f5bd6,color:#12203a;
+  classDef out fill:#eaf7f0,stroke:#1a9e6a,color:#0f3d2a;
+  class F2,SKILL hi;
+  class ED today;
+  class MEMO,LEAD out;

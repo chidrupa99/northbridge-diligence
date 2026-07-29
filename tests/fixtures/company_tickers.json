@@ -1,0 +1,47 @@
+{
+ "1": {
+  "cik_str": 320193,
+  "ticker": "AAPL",
+  "title": "Apple Inc."
+ },
+ "3": {
+  "cik_str": 789019,
+  "ticker": "MSFT",
+  "title": "MICROSOFT CORP"
+ },
+ "23": {
+  "cik_str": 70858,
+  "ticker": "BAC",
+  "title": "BANK OF AMERICA CORP /DE/"
+ },
+ "43": {
+  "cik_str": 1000275,
+  "ticker": "RY",
+  "title": "ROYAL BANK OF CANADA"
+ },
+ "128": {
+  "cik_str": 927971,
+  "ticker": "BMO",
+  "title": "BANK OF MONTREAL /CAN/"
+ },
+ "147": {
+  "cik_str": 1390777,
+  "ticker": "BNY",
+  "title": "Bank of New York Mellon Corp"
+ },
+ "148": {
+  "cik_str": 1045520,
+  "ticker": "CM",
+  "title": "CANADIAN IMPERIAL BANK OF COMMERCE /CAN/"
+ },
+ "289": {
+  "cik_str": 27419,
+  "ticker": "TGT",
+  "title": "TARGET CORP"
+ },
+ "3910": {
+  "cik_str": 1655210,
+  "ticker": "BYND",
+  "title": "BEYOND MEAT, INC."
+ }
+}

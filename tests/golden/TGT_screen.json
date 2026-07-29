@@ -1,0 +1,1589 @@
+{
+ "financials": {
+  "company": {
+   "cik": 27419,
+   "cik10": "0000027419",
+   "name": "TARGET CORP",
+   "ticker": "TGT"
+  },
+  "line_items": {
+   "capex": [
+    {
+     "accession": "0000027419-24-000032",
+     "filed": "2024-03-13",
+     "fiscal_period": "FY",
+     "fiscal_year": 2021,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2022-01-29",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741924000032/0000027419-24-000032-index.htm",
+     "unit": "USD",
+     "value": 3544000000,
+     "xbrl_tag": "PaymentsToAcquirePropertyPlantAndEquipment"
+    },
+    {
+     "accession": "0000027419-25-000018",
+     "filed": "2025-03-12",
+     "fiscal_period": "FY",
+     "fiscal_year": 2022,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2023-01-28",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741925000018/0000027419-25-000018-index.htm",
+     "unit": "USD",
+     "value": 5528000000,
+     "xbrl_tag": "PaymentsToAcquirePropertyPlantAndEquipment"
+    },
+    {
+     "accession": "0000027419-26-000016",
+     "filed": "2026-03-11",
+     "fiscal_period": "FY",
+     "fiscal_year": 2023,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2024-02-03",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+     "unit": "USD",
+     "value": 4806000000,
+     "xbrl_tag": "PaymentsToAcquirePropertyPlantAndEquipment"
+    },
+    {
+     "accession": "0000027419-26-000016",
+     "filed": "2026-03-11",
+     "fiscal_period": "FY",
+     "fiscal_year": 2024,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2025-02-01",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+     "unit": "USD",
+     "value": 2891000000,
+     "xbrl_tag": "PaymentsToAcquirePropertyPlantAndEquipment"
+    },
+    {
+     "accession": "0000027419-26-000016",
+     "filed": "2026-03-11",
+     "fiscal_period": "FY",
+     "fiscal_year": 2025,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2026-01-31",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+     "unit": "USD",
+     "value": 3727000000,
+     "xbrl_tag": "PaymentsToAcquirePropertyPlantAndEquipment"
+    }
+   ],
+   "cash": [
+    {
+     "accession": "0000027419-25-000018",
+     "filed": "2025-03-12",
+     "fiscal_period": "FY",
+     "fiscal_year": 2021,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2022-01-29",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741925000018/0000027419-25-000018-index.htm",
+     "unit": "USD",
+     "value": 5911000000,
+     "xbrl_tag": "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents"
+    },
+    {
+     "accession": "0000027419-26-000016",
+     "filed": "2026-03-11",
+     "fiscal_period": "FY",
+     "fiscal_year": 2022,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2023-01-28",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+     "unit": "USD",
+     "value": 2229000000,
+     "xbrl_tag": "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents"
+    },
+    {
+     "accession": "0000027419-26-000016",
+     "filed": "2026-03-11",
+     "fiscal_period": "FY",
+     "fiscal_year": 2023,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2024-02-03",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+     "unit": "USD",
+     "value": 3805000000,
+     "xbrl_tag": "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents"
+    },
+    {
+     "accession": "0000027419-26-000016",
+     "filed": "2026-03-11",
+     "fiscal_period": "FY",
+     "fiscal_year": 2024,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2025-02-01",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+     "unit": "USD",
+     "value": 4762000000,
+     "xbrl_tag": "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents"
+    },
+    {
+     "accession": "0000027419-26-000016",
+     "filed": "2026-03-11",
+     "fiscal_period": "FY",
+     "fiscal_year": 2025,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2026-01-31",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+     "unit": "USD",
+     "value": 5488000000,
+     "xbrl_tag": "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents"
+    }
+   ],
+   "cost_of_revenue": [
+    {
+     "accession": "0000027419-24-000032",
+     "filed": "2024-03-13",
+     "fiscal_period": "FY",
+     "fiscal_year": 2021,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2022-01-29",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741924000032/0000027419-24-000032-index.htm",
+     "unit": "USD",
+     "value": 74963000000,
+     "xbrl_tag": "CostOfGoodsAndServicesSold"
+    },
+    {
+     "accession": "0000027419-25-000018",
+     "filed": "2025-03-12",
+     "fiscal_period": "FY",
+     "fiscal_year": 2022,
+     "form": "10-K",
+     "originally_reported": 82229000000,
+     "period_end": "2023-01-28",
+     "restated": true,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741925000018/0000027419-25-000018-index.htm",
+     "unit": "USD",
+     "value": 82306000000,
+     "xbrl_tag": "CostOfGoodsAndServicesSold"
+    },
+    {
+     "accession": "0000027419-26-000016",
+     "filed": "2026-03-11",
+     "fiscal_period": "FY",
+     "fiscal_year": 2023,
+     "form": "10-K",
+     "originally_reported": 77736000000,
+     "period_end": "2024-02-03",
+     "restated": true,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+     "unit": "USD",
+     "value": 77828000000,
+     "xbrl_tag": "CostOfGoodsAndServicesSold"
+    },
+    {
+     "accession": "0000027419-26-000016",
+     "filed": "2026-03-11",
+     "fiscal_period": "FY",
+     "fiscal_year": 2024,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2025-02-01",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+     "unit": "USD",
+     "value": 76502000000,
+     "xbrl_tag": "CostOfGoodsAndServicesSold"
+    },
+    {
+     "accession": "0000027419-26-000016",
+     "filed": "2026-03-11",
+     "fiscal_period": "FY",
+     "fiscal_year": 2025,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2026-01-31",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+     "unit": "USD",
+     "value": 75511000000,
+     "xbrl_tag": "CostOfGoodsAndServicesSold"
+    }
+   ],
+   "current_assets": [
+    {
+     "accession": "0000027419-23-000015",
+     "filed": "2023-03-08",
+     "fiscal_period": "FY",
+     "fiscal_year": 2021,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2022-01-29",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741923000015/0000027419-23-000015-index.htm",
+     "unit": "USD",
+     "value": 21573000000,
+     "xbrl_tag": "AssetsCurrent"
+    },
+    {
+     "accession": "0000027419-24-000032",
+     "filed": "2024-03-13",
+     "fiscal_period": "FY",
+     "fiscal_year": 2022,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2023-01-28",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741924000032/0000027419-24-000032-index.htm",
+     "unit": "USD",
+     "value": 17846000000,
+     "xbrl_tag": "AssetsCurrent"
+    },
+    {
+     "accession": "0000027419-25-000018",
+     "filed": "2025-03-12",
+     "fiscal_period": "FY",
+     "fiscal_year": 2023,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2024-02-03",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741925000018/0000027419-25-000018-index.htm",
+     "unit": "USD",
+     "value": 17498000000,
+     "xbrl_tag": "AssetsCurrent"
+    },
+    {
+     "accession": "0000027419-26-000016",
+     "filed": "2026-03-11",
+     "fiscal_period": "FY",
+     "fiscal_year": 2024,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2025-02-01",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+     "unit": "USD",
+     "value": 19454000000,
+     "xbrl_tag": "AssetsCurrent"
+    },
+    {
+     "accession": "0000027419-26-000016",
+     "filed": "2026-03-11",
+     "fiscal_period": "FY",
+     "fiscal_year": 2025,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2026-01-31",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+     "unit": "USD",
+     "value": 20005000000,
+     "xbrl_tag": "AssetsCurrent"
+    }
+   ],
+   "current_debt": [],
+   "current_liabilities": [
+    {
+     "accession": "0000027419-23-000015",
+     "filed": "2023-03-08",
+     "fiscal_period": "FY",
+     "fiscal_year": 2021,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2022-01-29",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741923000015/0000027419-23-000015-index.htm",
+     "unit": "USD",
+     "value": 21747000000,
+     "xbrl_tag": "LiabilitiesCurrent"
+    },
+    {
+     "accession": "0000027419-24-000032",
+     "filed": "2024-03-13",
+     "fiscal_period": "FY",
+     "fiscal_year": 2022,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2023-01-28",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741924000032/0000027419-24-000032-index.htm",
+     "unit": "USD",
+     "value": 19500000000,
+     "xbrl_tag": "LiabilitiesCurrent"
+    },
+    {
+     "accession": "0000027419-25-000018",
+     "filed": "2025-03-12",
+     "fiscal_period": "FY",
+     "fiscal_year": 2023,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2024-02-03",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741925000018/0000027419-25-000018-index.htm",
+     "unit": "USD",
+     "value": 19304000000,
+     "xbrl_tag": "LiabilitiesCurrent"
+    },
+    {
+     "accession": "0000027419-26-000016",
+     "filed": "2026-03-11",
+     "fiscal_period": "FY",
+     "fiscal_year": 2024,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2025-02-01",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+     "unit": "USD",
+     "value": 20799000000,
+     "xbrl_tag": "LiabilitiesCurrent"
+    },
+    {
+     "accession": "0000027419-26-000016",
+     "filed": "2026-03-11",
+     "fiscal_period": "FY",
+     "fiscal_year": 2025,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2026-01-31",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+     "unit": "USD",
+     "value": 21230000000,
+     "xbrl_tag": "LiabilitiesCurrent"
+    }
+   ],
+   "depreciation_amortization": [
+    {
+     "accession": "0000027419-24-000032",
+     "filed": "2024-03-13",
+     "fiscal_period": "FY",
+     "fiscal_year": 2021,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2022-01-29",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741924000032/0000027419-24-000032-index.htm",
+     "unit": "USD",
+     "value": 2642000000,
+     "xbrl_tag": "DepreciationDepletionAndAmortization"
+    },
+    {
+     "accession": "0000027419-25-000018",
+     "filed": "2025-03-12",
+     "fiscal_period": "FY",
+     "fiscal_year": 2022,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2023-01-28",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741925000018/0000027419-25-000018-index.htm",
+     "unit": "USD",
+     "value": 2700000000,
+     "xbrl_tag": "DepreciationDepletionAndAmortization"
+    },
+    {
+     "accession": "0000027419-26-000016",
+     "filed": "2026-03-11",
+     "fiscal_period": "FY",
+     "fiscal_year": 2023,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2024-02-03",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+     "unit": "USD",
+     "value": 2801000000,
+     "xbrl_tag": "DepreciationDepletionAndAmortization"
+    },
+    {
+     "accession": "0000027419-26-000016",
+     "filed": "2026-03-11",
+     "fiscal_period": "FY",
+     "fiscal_year": 2024,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2025-02-01",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+     "unit": "USD",
+     "value": 2981000000,
+     "xbrl_tag": "DepreciationDepletionAndAmortization"
+    },
+    {
+     "accession": "0000027419-26-000016",
+     "filed": "2026-03-11",
+     "fiscal_period": "FY",
+     "fiscal_year": 2025,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2026-01-31",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+     "unit": "USD",
+     "value": 3134000000,
+     "xbrl_tag": "DepreciationDepletionAndAmortization"
+    }
+   ],
+   "gross_profit": [],
+   "interest_expense": [
+    {
+     "accession": "0000027419-24-000032",
+     "filed": "2024-03-13",
+     "fiscal_period": "FY",
+     "fiscal_year": 2021,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2022-01-29",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741924000032/0000027419-24-000032-index.htm",
+     "unit": "USD",
+     "value": 421000000,
+     "xbrl_tag": "InterestExpense"
+    },
+    {
+     "accession": "0000027419-24-000032",
+     "filed": "2024-03-13",
+     "fiscal_period": "FY",
+     "fiscal_year": 2022,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2023-01-28",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741924000032/0000027419-24-000032-index.htm",
+     "unit": "USD",
+     "value": 478000000,
+     "xbrl_tag": "InterestExpense"
+    },
+    {
+     "accession": "0000027419-24-000032",
+     "filed": "2024-03-13",
+     "fiscal_period": "FY",
+     "fiscal_year": 2023,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2024-02-03",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741924000032/0000027419-24-000032-index.htm",
+     "unit": "USD",
+     "value": 502000000,
+     "xbrl_tag": "InterestExpense"
+    },
+    {
+     "accession": "0000027419-26-000016",
+     "filed": "2026-03-11",
+     "fiscal_period": "FY",
+     "fiscal_year": 2024,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2025-02-01",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+     "unit": "USD",
+     "value": 411000000,
+     "xbrl_tag": "InterestExpenseNonoperating"
+    },
+    {
+     "accession": "0000027419-26-000016",
+     "filed": "2026-03-11",
+     "fiscal_period": "FY",
+     "fiscal_year": 2025,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2026-01-31",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+     "unit": "USD",
+     "value": 445000000,
+     "xbrl_tag": "InterestExpenseNonoperating"
+    }
+   ],
+   "long_term_debt": [
+    {
+     "accession": "0000027419-23-000015",
+     "filed": "2023-03-08",
+     "fiscal_period": "FY",
+     "fiscal_year": 2021,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2022-01-29",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741923000015/0000027419-23-000015-index.htm",
+     "unit": "USD",
+     "value": 11568000000,
+     "xbrl_tag": "LongTermDebt"
+    },
+    {
+     "accession": "0000027419-24-000032",
+     "filed": "2024-03-13",
+     "fiscal_period": "FY",
+     "fiscal_year": 2022,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2023-01-28",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741924000032/0000027419-24-000032-index.htm",
+     "unit": "USD",
+     "value": 14141000000,
+     "xbrl_tag": "LongTermDebt"
+    },
+    {
+     "accession": "0000027419-25-000018",
+     "filed": "2025-03-12",
+     "fiscal_period": "FY",
+     "fiscal_year": 2023,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2024-02-03",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741925000018/0000027419-25-000018-index.htm",
+     "unit": "USD",
+     "value": 14151000000,
+     "xbrl_tag": "LongTermDebt"
+    },
+    {
+     "accession": "0000027419-26-000016",
+     "filed": "2026-03-11",
+     "fiscal_period": "FY",
+     "fiscal_year": 2024,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2025-02-01",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+     "unit": "USD",
+     "value": 13904000000,
+     "xbrl_tag": "LongTermDebt"
+    },
+    {
+     "accession": "0000027419-26-000016",
+     "filed": "2026-03-11",
+     "fiscal_period": "FY",
+     "fiscal_year": 2025,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2026-01-31",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+     "unit": "USD",
+     "value": 14398000000,
+     "xbrl_tag": "LongTermDebt"
+    }
+   ],
+   "net_income": [
+    {
+     "accession": "0000027419-24-000032",
+     "filed": "2024-03-13",
+     "fiscal_period": "FY",
+     "fiscal_year": 2021,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2022-01-29",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741924000032/0000027419-24-000032-index.htm",
+     "unit": "USD",
+     "value": 6946000000,
+     "xbrl_tag": "NetIncomeLoss"
+    },
+    {
+     "accession": "0000027419-25-000018",
+     "filed": "2025-03-12",
+     "fiscal_period": "FY",
+     "fiscal_year": 2022,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2023-01-28",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741925000018/0000027419-25-000018-index.htm",
+     "unit": "USD",
+     "value": 2780000000,
+     "xbrl_tag": "NetIncomeLoss"
+    },
+    {
+     "accession": "0000027419-26-000016",
+     "filed": "2026-03-11",
+     "fiscal_period": "FY",
+     "fiscal_year": 2023,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2024-02-03",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+     "unit": "USD",
+     "value": 4138000000,
+     "xbrl_tag": "NetIncomeLoss"
+    },
+    {
+     "accession": "0000027419-26-000016",
+     "filed": "2026-03-11",
+     "fiscal_period": "FY",
+     "fiscal_year": 2024,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2025-02-01",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+     "unit": "USD",
+     "value": 4091000000,
+     "xbrl_tag": "NetIncomeLoss"
+    },
+    {
+     "accession": "0000027419-26-000016",
+     "filed": "2026-03-11",
+     "fiscal_period": "FY",
+     "fiscal_year": 2025,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2026-01-31",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+     "unit": "USD",
+     "value": 3705000000,
+     "xbrl_tag": "NetIncomeLoss"
+    }
+   ],
+   "operating_cash_flow": [
+    {
+     "accession": "0000027419-24-000032",
+     "filed": "2024-03-13",
+     "fiscal_period": "FY",
+     "fiscal_year": 2021,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2022-01-29",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741924000032/0000027419-24-000032-index.htm",
+     "unit": "USD",
+     "value": 8625000000,
+     "xbrl_tag": "NetCashProvidedByUsedInOperatingActivities"
+    },
+    {
+     "accession": "0000027419-25-000018",
+     "filed": "2025-03-12",
+     "fiscal_period": "FY",
+     "fiscal_year": 2022,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2023-01-28",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741925000018/0000027419-25-000018-index.htm",
+     "unit": "USD",
+     "value": 4018000000,
+     "xbrl_tag": "NetCashProvidedByUsedInOperatingActivities"
+    },
+    {
+     "accession": "0000027419-26-000016",
+     "filed": "2026-03-11",
+     "fiscal_period": "FY",
+     "fiscal_year": 2023,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2024-02-03",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+     "unit": "USD",
+     "value": 8621000000,
+     "xbrl_tag": "NetCashProvidedByUsedInOperatingActivities"
+    },
+    {
+     "accession": "0000027419-26-000016",
+     "filed": "2026-03-11",
+     "fiscal_period": "FY",
+     "fiscal_year": 2024,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2025-02-01",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+     "unit": "USD",
+     "value": 7367000000,
+     "xbrl_tag": "NetCashProvidedByUsedInOperatingActivities"
+    },
+    {
+     "accession": "0000027419-26-000016",
+     "filed": "2026-03-11",
+     "fiscal_period": "FY",
+     "fiscal_year": 2025,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2026-01-31",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+     "unit": "USD",
+     "value": 6562000000,
+     "xbrl_tag": "NetCashProvidedByUsedInOperatingActivities"
+    }
+   ],
+   "operating_income": [
+    {
+     "accession": "0000027419-24-000032",
+     "filed": "2024-03-13",
+     "fiscal_period": "FY",
+     "fiscal_year": 2021,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2022-01-29",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741924000032/0000027419-24-000032-index.htm",
+     "unit": "USD",
+     "value": 8946000000,
+     "xbrl_tag": "OperatingIncomeLoss"
+    },
+    {
+     "accession": "0000027419-25-000018",
+     "filed": "2025-03-12",
+     "fiscal_period": "FY",
+     "fiscal_year": 2022,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2023-01-28",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741925000018/0000027419-25-000018-index.htm",
+     "unit": "USD",
+     "value": 3848000000,
+     "xbrl_tag": "OperatingIncomeLoss"
+    },
+    {
+     "accession": "0000027419-26-000016",
+     "filed": "2026-03-11",
+     "fiscal_period": "FY",
+     "fiscal_year": 2023,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2024-02-03",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+     "unit": "USD",
+     "value": 5707000000,
+     "xbrl_tag": "OperatingIncomeLoss"
+    },
+    {
+     "accession": "0000027419-26-000016",
+     "filed": "2026-03-11",
+     "fiscal_period": "FY",
+     "fiscal_year": 2024,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2025-02-01",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+     "unit": "USD",
+     "value": 5566000000,
+     "xbrl_tag": "OperatingIncomeLoss"
+    },
+    {
+     "accession": "0000027419-26-000016",
+     "filed": "2026-03-11",
+     "fiscal_period": "FY",
+     "fiscal_year": 2025,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2026-01-31",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+     "unit": "USD",
+     "value": 5117000000,
+     "xbrl_tag": "OperatingIncomeLoss"
+    }
+   ],
+   "revenue": [
+    {
+     "accession": "0000027419-24-000032",
+     "filed": "2024-03-13",
+     "fiscal_period": "FY",
+     "fiscal_year": 2021,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2022-01-29",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741924000032/0000027419-24-000032-index.htm",
+     "unit": "USD",
+     "value": 106005000000,
+     "xbrl_tag": "RevenueFromContractWithCustomerExcludingAssessedTax"
+    },
+    {
+     "accession": "0000027419-25-000018",
+     "filed": "2025-03-12",
+     "fiscal_period": "FY",
+     "fiscal_year": 2022,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2023-01-28",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741925000018/0000027419-25-000018-index.htm",
+     "unit": "USD",
+     "value": 109120000000,
+     "xbrl_tag": "RevenueFromContractWithCustomerExcludingAssessedTax"
+    },
+    {
+     "accession": "0000027419-26-000016",
+     "filed": "2026-03-11",
+     "fiscal_period": "FY",
+     "fiscal_year": 2023,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2024-02-03",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+     "unit": "USD",
+     "value": 107412000000,
+     "xbrl_tag": "RevenueFromContractWithCustomerExcludingAssessedTax"
+    },
+    {
+     "accession": "0000027419-26-000016",
+     "filed": "2026-03-11",
+     "fiscal_period": "FY",
+     "fiscal_year": 2024,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2025-02-01",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+     "unit": "USD",
+     "value": 106566000000,
+     "xbrl_tag": "RevenueFromContractWithCustomerExcludingAssessedTax"
+    },
+    {
+     "accession": "0000027419-26-000016",
+     "filed": "2026-03-11",
+     "fiscal_period": "FY",
+     "fiscal_year": 2025,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2026-01-31",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+     "unit": "USD",
+     "value": 104780000000,
+     "xbrl_tag": "RevenueFromContractWithCustomerExcludingAssessedTax"
+    }
+   ],
+   "stockholders_equity": [
+    {
+     "accession": "0000027419-25-000018",
+     "filed": "2025-03-12",
+     "fiscal_period": "FY",
+     "fiscal_year": 2021,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2022-01-29",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741925000018/0000027419-25-000018-index.htm",
+     "unit": "USD",
+     "value": 12827000000,
+     "xbrl_tag": "StockholdersEquity"
+    },
+    {
+     "accession": "0000027419-26-000016",
+     "filed": "2026-03-11",
+     "fiscal_period": "FY",
+     "fiscal_year": 2022,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2023-01-28",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+     "unit": "USD",
+     "value": 11232000000,
+     "xbrl_tag": "StockholdersEquity"
+    },
+    {
+     "accession": "0000027419-26-000016",
+     "filed": "2026-03-11",
+     "fiscal_period": "FY",
+     "fiscal_year": 2023,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2024-02-03",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+     "unit": "USD",
+     "value": 13432000000,
+     "xbrl_tag": "StockholdersEquity"
+    },
+    {
+     "accession": "0000027419-26-000016",
+     "filed": "2026-03-11",
+     "fiscal_period": "FY",
+     "fiscal_year": 2024,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2025-02-01",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+     "unit": "USD",
+     "value": 14666000000,
+     "xbrl_tag": "StockholdersEquity"
+    },
+    {
+     "accession": "0000027419-26-000016",
+     "filed": "2026-03-11",
+     "fiscal_period": "FY",
+     "fiscal_year": 2025,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2026-01-31",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+     "unit": "USD",
+     "value": 16165000000,
+     "xbrl_tag": "StockholdersEquity"
+    }
+   ],
+   "total_assets": [
+    {
+     "accession": "0000027419-23-000015",
+     "filed": "2023-03-08",
+     "fiscal_period": "FY",
+     "fiscal_year": 2021,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2022-01-29",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741923000015/0000027419-23-000015-index.htm",
+     "unit": "USD",
+     "value": 53811000000,
+     "xbrl_tag": "Assets"
+    },
+    {
+     "accession": "0000027419-24-000032",
+     "filed": "2024-03-13",
+     "fiscal_period": "FY",
+     "fiscal_year": 2022,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2023-01-28",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741924000032/0000027419-24-000032-index.htm",
+     "unit": "USD",
+     "value": 53335000000,
+     "xbrl_tag": "Assets"
+    },
+    {
+     "accession": "0000027419-25-000018",
+     "filed": "2025-03-12",
+     "fiscal_period": "FY",
+     "fiscal_year": 2023,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2024-02-03",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741925000018/0000027419-25-000018-index.htm",
+     "unit": "USD",
+     "value": 55356000000,
+     "xbrl_tag": "Assets"
+    },
+    {
+     "accession": "0000027419-26-000016",
+     "filed": "2026-03-11",
+     "fiscal_period": "FY",
+     "fiscal_year": 2024,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2025-02-01",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+     "unit": "USD",
+     "value": 57769000000,
+     "xbrl_tag": "Assets"
+    },
+    {
+     "accession": "0000027419-26-000016",
+     "filed": "2026-03-11",
+     "fiscal_period": "FY",
+     "fiscal_year": 2025,
+     "form": "10-K",
+     "originally_reported": null,
+     "period_end": "2026-01-31",
+     "restated": false,
+     "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+     "unit": "USD",
+     "value": 59490000000,
+     "xbrl_tag": "Assets"
+    }
+   ],
+   "total_liabilities": []
+  },
+  "mixed_tag_basis": [
+   "interest_expense",
+   "long_term_debt",
+   "net_income",
+   "operating_cash_flow",
+   "revenue",
+   "stockholders_equity"
+  ],
+  "reference_fiscal_year": 2025,
+  "restatement_policy": "as_last_reported",
+  "xbrl_tags_used": {
+   "capex": [
+    "PaymentsToAcquirePropertyPlantAndEquipment"
+   ],
+   "cash": [
+    "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents"
+   ],
+   "cost_of_revenue": [
+    "CostOfGoodsAndServicesSold"
+   ],
+   "current_assets": [
+    "AssetsCurrent"
+   ],
+   "current_debt": [
+    "LongTermDebtCurrent"
+   ],
+   "current_liabilities": [
+    "LiabilitiesCurrent"
+   ],
+   "depreciation_amortization": [
+    "DepreciationDepletionAndAmortization"
+   ],
+   "gross_profit": [
+    "GrossProfit"
+   ],
+   "interest_expense": [
+    "InterestExpense",
+    "InterestExpenseNonoperating"
+   ],
+   "long_term_debt": [
+    "LongTermDebtNoncurrent",
+    "LongTermDebt"
+   ],
+   "net_income": [
+    "NetIncomeLoss",
+    "ProfitLoss"
+   ],
+   "operating_cash_flow": [
+    "NetCashProvidedByUsedInOperatingActivities",
+    "NetCashProvidedByUsedInOperatingActivitiesContinuingOperations"
+   ],
+   "operating_income": [
+    "OperatingIncomeLoss"
+   ],
+   "revenue": [
+    "RevenueFromContractWithCustomerExcludingAssessedTax",
+    "Revenues",
+    "SalesRevenueNet"
+   ],
+   "stockholders_equity": [
+    "StockholdersEquity",
+    "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"
+   ],
+   "total_assets": [
+    "Assets"
+   ]
+  },
+  "years_requested": 5
+ },
+ "screen": {
+  "as_of_fiscal_year": 2025,
+  "as_of_period_end": "2026-01-31",
+  "company": {
+   "cik": 27419,
+   "cik10": "0000027419",
+   "name": "TARGET CORP",
+   "ticker": "TGT"
+  },
+  "currency": "USD",
+  "data_quality": {
+   "last_reported_before_reference_year": {
+    "current_debt": 2019,
+    "gross_profit": 2017
+   },
+   "missing_line_items": [
+    "current_debt",
+    "gross_profit",
+    "total_liabilities"
+   ],
+   "mixed_tag_basis": [
+    "interest_expense",
+    "long_term_debt",
+    "net_income",
+    "operating_cash_flow",
+    "revenue",
+    "stockholders_equity"
+   ],
+   "restated_line_items": [],
+   "restatement_policy": "as_last_reported",
+   "single_currency": true
+  },
+  "flags": [
+   {
+    "code": "LIQUIDITY",
+    "evidence": [
+     {
+      "accession": "0000027419-26-000016",
+      "filed": "2026-03-11",
+      "fiscal_period": "FY",
+      "fiscal_year": 2025,
+      "form": "10-K",
+      "originally_reported": null,
+      "period_end": "2026-01-31",
+      "restated": false,
+      "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+      "unit": "USD",
+      "value": 20005000000,
+      "xbrl_tag": "AssetsCurrent"
+     },
+     {
+      "accession": "0000027419-26-000016",
+      "filed": "2026-03-11",
+      "fiscal_period": "FY",
+      "fiscal_year": 2025,
+      "form": "10-K",
+      "originally_reported": null,
+      "period_end": "2026-01-31",
+      "restated": false,
+      "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+      "unit": "USD",
+      "value": 21230000000,
+      "xbrl_tag": "LiabilitiesCurrent"
+     }
+    ],
+    "message": "Current ratio is 0.94 (below 1.0) \u2014 current liabilities exceed current assets.",
+    "severity": "high"
+   },
+   {
+    "code": "TAG_DISCONTINUED",
+    "evidence": [],
+    "message": "The filer stopped tagging these before the reference year, so they are excluded rather than carried forward: current_debt (last seen FY2019), gross_profit (last seen FY2017).",
+    "severity": "info"
+   },
+   {
+    "code": "MIXED_TAG_BASIS",
+    "evidence": [],
+    "message": "Series stitched across more than one US-GAAP tag (the filer changed tagging mid-history): interest_expense, long_term_debt, net_income, operating_cash_flow, revenue, stockholders_equity. Comparability across years is usually fine but worth a spot-check.",
+    "severity": "info"
+   }
+  ],
+  "metrics": {
+   "current_ratio": {
+    "caveat": null,
+    "inputs": [
+     {
+      "accession": "0000027419-26-000016",
+      "filed": "2026-03-11",
+      "fiscal_period": "FY",
+      "fiscal_year": 2025,
+      "form": "10-K",
+      "originally_reported": null,
+      "period_end": "2026-01-31",
+      "restated": false,
+      "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+      "unit": "USD",
+      "value": 20005000000,
+      "xbrl_tag": "AssetsCurrent"
+     },
+     {
+      "accession": "0000027419-26-000016",
+      "filed": "2026-03-11",
+      "fiscal_period": "FY",
+      "fiscal_year": 2025,
+      "form": "10-K",
+      "originally_reported": null,
+      "period_end": "2026-01-31",
+      "restated": false,
+      "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+      "unit": "USD",
+      "value": 21230000000,
+      "xbrl_tag": "LiabilitiesCurrent"
+     }
+    ],
+    "meaningful": true,
+    "unit": "x",
+    "value": 0.9422986340084786
+   },
+   "debt_to_ebitda": {
+    "caveat": null,
+    "inputs": [
+     {
+      "accession": "0000027419-26-000016",
+      "filed": "2026-03-11",
+      "fiscal_period": "FY",
+      "fiscal_year": 2025,
+      "form": "10-K",
+      "originally_reported": null,
+      "period_end": "2026-01-31",
+      "restated": false,
+      "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+      "unit": "USD",
+      "value": 14398000000,
+      "xbrl_tag": "LongTermDebt"
+     },
+     {
+      "accession": "0000027419-26-000016",
+      "filed": "2026-03-11",
+      "fiscal_period": "FY",
+      "fiscal_year": 2025,
+      "form": "10-K",
+      "originally_reported": null,
+      "period_end": "2026-01-31",
+      "restated": false,
+      "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+      "unit": "USD",
+      "value": 5117000000,
+      "xbrl_tag": "OperatingIncomeLoss"
+     }
+    ],
+    "meaningful": true,
+    "unit": "x",
+    "value": 1.745000605987153
+   },
+   "debt_to_equity": {
+    "caveat": null,
+    "inputs": [
+     {
+      "accession": "0000027419-26-000016",
+      "filed": "2026-03-11",
+      "fiscal_period": "FY",
+      "fiscal_year": 2025,
+      "form": "10-K",
+      "originally_reported": null,
+      "period_end": "2026-01-31",
+      "restated": false,
+      "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+      "unit": "USD",
+      "value": 14398000000,
+      "xbrl_tag": "LongTermDebt"
+     },
+     {
+      "accession": "0000027419-26-000016",
+      "filed": "2026-03-11",
+      "fiscal_period": "FY",
+      "fiscal_year": 2025,
+      "form": "10-K",
+      "originally_reported": null,
+      "period_end": "2026-01-31",
+      "restated": false,
+      "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+      "unit": "USD",
+      "value": 16165000000,
+      "xbrl_tag": "StockholdersEquity"
+     }
+    ],
+    "meaningful": true,
+    "unit": "x",
+    "value": 0.8906897618311166
+   },
+   "ebitda": {
+    "caveat": "EBITDA proxied as operating income + D&A",
+    "inputs": [
+     {
+      "accession": "0000027419-26-000016",
+      "filed": "2026-03-11",
+      "fiscal_period": "FY",
+      "fiscal_year": 2025,
+      "form": "10-K",
+      "originally_reported": null,
+      "period_end": "2026-01-31",
+      "restated": false,
+      "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+      "unit": "USD",
+      "value": 5117000000,
+      "xbrl_tag": "OperatingIncomeLoss"
+     },
+     {
+      "accession": "0000027419-26-000016",
+      "filed": "2026-03-11",
+      "fiscal_period": "FY",
+      "fiscal_year": 2025,
+      "form": "10-K",
+      "originally_reported": null,
+      "period_end": "2026-01-31",
+      "restated": false,
+      "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+      "unit": "USD",
+      "value": 3134000000,
+      "xbrl_tag": "DepreciationDepletionAndAmortization"
+     }
+    ],
+    "meaningful": true,
+    "unit": "USD",
+    "value": 8251000000
+   },
+   "gross_margin": {
+    "caveat": null,
+    "inputs": [
+     {
+      "accession": "0000027419-26-000016",
+      "filed": "2026-03-11",
+      "fiscal_period": "FY",
+      "fiscal_year": 2025,
+      "form": "10-K",
+      "originally_reported": null,
+      "period_end": "2026-01-31",
+      "restated": false,
+      "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+      "unit": "USD",
+      "value": 75511000000,
+      "xbrl_tag": "CostOfGoodsAndServicesSold"
+     },
+     {
+      "accession": "0000027419-26-000016",
+      "filed": "2026-03-11",
+      "fiscal_period": "FY",
+      "fiscal_year": 2025,
+      "form": "10-K",
+      "originally_reported": null,
+      "period_end": "2026-01-31",
+      "restated": false,
+      "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+      "unit": "USD",
+      "value": 104780000000,
+      "xbrl_tag": "RevenueFromContractWithCustomerExcludingAssessedTax"
+     }
+    ],
+    "meaningful": true,
+    "unit": "ratio",
+    "value": 0.2793376598587517
+   },
+   "interest_coverage": {
+    "caveat": null,
+    "inputs": [
+     {
+      "accession": "0000027419-26-000016",
+      "filed": "2026-03-11",
+      "fiscal_period": "FY",
+      "fiscal_year": 2025,
+      "form": "10-K",
+      "originally_reported": null,
+      "period_end": "2026-01-31",
+      "restated": false,
+      "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+      "unit": "USD",
+      "value": 5117000000,
+      "xbrl_tag": "OperatingIncomeLoss"
+     },
+     {
+      "accession": "0000027419-26-000016",
+      "filed": "2026-03-11",
+      "fiscal_period": "FY",
+      "fiscal_year": 2025,
+      "form": "10-K",
+      "originally_reported": null,
+      "period_end": "2026-01-31",
+      "restated": false,
+      "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+      "unit": "USD",
+      "value": 445000000,
+      "xbrl_tag": "InterestExpenseNonoperating"
+     }
+    ],
+    "meaningful": true,
+    "unit": "x",
+    "value": 11.498876404494382
+   },
+   "net_margin": {
+    "caveat": null,
+    "inputs": [
+     {
+      "accession": "0000027419-26-000016",
+      "filed": "2026-03-11",
+      "fiscal_period": "FY",
+      "fiscal_year": 2025,
+      "form": "10-K",
+      "originally_reported": null,
+      "period_end": "2026-01-31",
+      "restated": false,
+      "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+      "unit": "USD",
+      "value": 3705000000,
+      "xbrl_tag": "NetIncomeLoss"
+     },
+     {
+      "accession": "0000027419-26-000016",
+      "filed": "2026-03-11",
+      "fiscal_period": "FY",
+      "fiscal_year": 2025,
+      "form": "10-K",
+      "originally_reported": null,
+      "period_end": "2026-01-31",
+      "restated": false,
+      "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+      "unit": "USD",
+      "value": 104780000000,
+      "xbrl_tag": "RevenueFromContractWithCustomerExcludingAssessedTax"
+     }
+    ],
+    "meaningful": true,
+    "unit": "ratio",
+    "value": 0.03535980148883375
+   },
+   "operating_cash_flow_latest": {
+    "caveat": null,
+    "inputs": [
+     {
+      "accession": "0000027419-26-000016",
+      "filed": "2026-03-11",
+      "fiscal_period": "FY",
+      "fiscal_year": 2025,
+      "form": "10-K",
+      "originally_reported": null,
+      "period_end": "2026-01-31",
+      "restated": false,
+      "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+      "unit": "USD",
+      "value": 6562000000,
+      "xbrl_tag": "NetCashProvidedByUsedInOperatingActivities"
+     }
+    ],
+    "meaningful": true,
+    "unit": "USD",
+    "value": 6562000000
+   },
+   "operating_margin": {
+    "caveat": null,
+    "inputs": [
+     {
+      "accession": "0000027419-26-000016",
+      "filed": "2026-03-11",
+      "fiscal_period": "FY",
+      "fiscal_year": 2025,
+      "form": "10-K",
+      "originally_reported": null,
+      "period_end": "2026-01-31",
+      "restated": false,
+      "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+      "unit": "USD",
+      "value": 5117000000,
+      "xbrl_tag": "OperatingIncomeLoss"
+     },
+     {
+      "accession": "0000027419-26-000016",
+      "filed": "2026-03-11",
+      "fiscal_period": "FY",
+      "fiscal_year": 2025,
+      "form": "10-K",
+      "originally_reported": null,
+      "period_end": "2026-01-31",
+      "restated": false,
+      "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+      "unit": "USD",
+      "value": 104780000000,
+      "xbrl_tag": "RevenueFromContractWithCustomerExcludingAssessedTax"
+     }
+    ],
+    "meaningful": true,
+    "unit": "ratio",
+    "value": 0.048835655659477
+   },
+   "revenue_cagr": {
+    "caveat": null,
+    "inputs": [
+     {
+      "accession": "0000027419-24-000032",
+      "filed": "2024-03-13",
+      "fiscal_period": "FY",
+      "fiscal_year": 2021,
+      "form": "10-K",
+      "originally_reported": null,
+      "period_end": "2022-01-29",
+      "restated": false,
+      "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741924000032/0000027419-24-000032-index.htm",
+      "unit": "USD",
+      "value": 106005000000,
+      "xbrl_tag": "RevenueFromContractWithCustomerExcludingAssessedTax"
+     },
+     {
+      "accession": "0000027419-26-000016",
+      "filed": "2026-03-11",
+      "fiscal_period": "FY",
+      "fiscal_year": 2025,
+      "form": "10-K",
+      "originally_reported": null,
+      "period_end": "2026-01-31",
+      "restated": false,
+      "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+      "unit": "USD",
+      "value": 104780000000,
+      "xbrl_tag": "RevenueFromContractWithCustomerExcludingAssessedTax"
+     }
+    ],
+    "meaningful": true,
+    "unit": "ratio",
+    "value": -0.0029016193492337194,
+    "window": "FY2021-FY2025"
+   },
+   "revenue_yoy": {
+    "caveat": null,
+    "inputs": [
+     {
+      "accession": "0000027419-26-000016",
+      "filed": "2026-03-11",
+      "fiscal_period": "FY",
+      "fiscal_year": 2024,
+      "form": "10-K",
+      "originally_reported": null,
+      "period_end": "2025-02-01",
+      "restated": false,
+      "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+      "unit": "USD",
+      "value": 106566000000,
+      "xbrl_tag": "RevenueFromContractWithCustomerExcludingAssessedTax"
+     },
+     {
+      "accession": "0000027419-26-000016",
+      "filed": "2026-03-11",
+      "fiscal_period": "FY",
+      "fiscal_year": 2025,
+      "form": "10-K",
+      "originally_reported": null,
+      "period_end": "2026-01-31",
+      "restated": false,
+      "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+      "unit": "USD",
+      "value": 104780000000,
+      "xbrl_tag": "RevenueFromContractWithCustomerExcludingAssessedTax"
+     }
+    ],
+    "meaningful": true,
+    "unit": "ratio",
+    "value": -0.01675956684120639
+   },
+   "total_debt": {
+    "caveat": "approximated as long-term + current debt tags; finance leases and other debt-like items are not fully assembled",
+    "inputs": [
+     {
+      "accession": "0000027419-26-000016",
+      "filed": "2026-03-11",
+      "fiscal_period": "FY",
+      "fiscal_year": 2025,
+      "form": "10-K",
+      "originally_reported": null,
+      "period_end": "2026-01-31",
+      "restated": false,
+      "source_url": "https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/0000027419-26-000016-index.htm",
+      "unit": "USD",
+      "value": 14398000000,
+      "xbrl_tag": "LongTermDebt"
+     }
+    ],
+    "meaningful": true,
+    "unit": "USD",
+    "value": 14398000000
+   }
+  },
+  "note": "All ratios computed in code from the sourced inputs listed on each metric. A metric with meaningful=false must NOT be quoted as a figure \u2014 state its caveat instead. Missing metrics mean the underlying tag was not reported, not that the value is zero.",
+  "thresholds": {
+   "current_ratio_low": 1.0,
+   "debt_to_ebitda_high": 4.0,
+   "interest_coverage_low": 2.0,
+   "near_zero_denominator_ratio": 0.01,
+   "revenue_decline_pct": -0.05,
+   "stale_data_months": 15
+  }
+ }
+}
