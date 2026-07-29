@@ -50,6 +50,8 @@ actually do.
 ## Quickest way to evaluate this
 
 ```bash
+git clone https://github.com/chidrupa99/northbridge-diligence.git
+cd northbridge-diligence
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e .
 export EDGAR_USER_AGENT="Your Org you@example.com"

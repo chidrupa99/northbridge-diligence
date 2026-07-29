@@ -51,7 +51,7 @@ The same blob also hands us every prior-year comparative for free — a FY2025 1
 
 ```bash
 # 0. Get the code, and confirm your Python before building anything
-unzip northbridge-diligence-*.zip && cd northbridge-diligence   # or: git clone <url> && cd northbridge-diligence
+git clone https://github.com/chidrupa99/northbridge-diligence.git && cd northbridge-diligence
 python3 scripts/doctor.py                                       # runs on ANY Python; reports if yours is too old
 
 # 1. Create an isolated environment and install
