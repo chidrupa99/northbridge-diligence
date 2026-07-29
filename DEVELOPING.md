@@ -59,8 +59,10 @@ off-server, and `server.py` only registers it as MCP tools.
 ## Developer setup
 
 ```bash
+git clone <repo-url> northbridge-diligence         # or unzip the submission
+cd northbridge-diligence
 python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements-dev.txt      # includes runtime deps
+pip install -r requirements-dev.txt                # includes runtime deps
 export EDGAR_USER_AGENT="Your Name you@example.com"
 
 python -m pytest             # 67 tests, offline, ~1s
@@ -70,6 +72,14 @@ python scripts/doctor.py     # live checks against real EDGAR
 `requirements-dev.txt` starts with `-r requirements.txt`, so it installs both.
 `doctor.py` needs no dev dependencies, which is why the README's deployment path
 uses it alone.
+
+To test changes against a real Claude client rather than just pytest, register
+the server in the client's config — see [DEPLOYMENT.md § 5](DEPLOYMENT.md) for
+the full walkthrough. Two things worth calling out from there: **add** the
+`mcpServers` block to whatever the config already contains rather than replacing
+the file, and point `command` at the venv's Python by absolute path (the client
+does not inherit an activated venv). Restart the client after saving; it only
+reads the config at launch.
 
 ---
 

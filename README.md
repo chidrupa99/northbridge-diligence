@@ -50,32 +50,45 @@ The same blob also hands us every prior-year comparative for free — a FY2025 1
 **Prerequisites:** Python 3.10+ (the MCP SDK requires it) and an MCP client — Claude Desktop or Claude Code.
 
 ```bash
+# 1. Get the code onto the machine
+unzip northbridge-diligence-submission.zip     # or: git clone <repo-url>
+cd northbridge-diligence
+
+# 2. Install dependencies into a private virtualenv
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-export EDGAR_USER_AGENT="Your Org you@example.com"   # SEC returns 403 without it
-python scripts/doctor.py                             # 9 checks; do this before step 4
+
+# 3. Identify yourself to SEC (contact string, not a credential — EDGAR is public)
+export EDGAR_USER_AGENT="Your Org you@example.com"
+
+# 4. Verify — 9 checks; each failure prints its fix
+python scripts/doctor.py
+
+# 5. Install the skill
 cp -r skill ~/.claude/skills/company-screen
 ```
 
-Then point your Claude client at the server:
+`export` sets an **environment variable** — a value the terminal remembers for this session and passes to any program launched from it. SEC returns HTTP 403 without a contact header, so both `doctor.py` and the server need this value. Do step 4 before step 6, or a broken install first appears as a skill silently returning nothing inside a Claude conversation.
+
+**6. Register the server with your Claude client.** This one is not a shell command — it edits a JSON file the client reads at launch. In Claude Desktop: **Settings → Developer → Edit Config**. **Add** to what is already there rather than replacing:
 
 ```jsonc
 {
   "mcpServers": {
     "northbridge-diligence": {
       "command": "/absolute/path/to/northbridge-diligence/.venv/bin/python",
-      "args": ["/absolute/path/to/northbridge-diligence/src/server.py"],
-      "env": { "EDGAR_USER_AGENT": "Your Org you@example.com" }
+      "args":    ["/absolute/path/to/northbridge-diligence/src/server.py"],
+      "env":     { "EDGAR_USER_AGENT": "Your Org you@example.com" }
     }
   }
 }
 ```
 
-Point `command` at the **virtualenv's** Python — the client launches the server in its own environment and will not inherit an activated venv. And never run `src/server.py` yourself: it speaks MCP over stdio, so it waits silently on standard input and looks hung when it is working correctly. The client starts it.
+Then **restart the client**. Full walkthrough — where the file lives on each platform, the merge case when other MCP servers are already registered, JSON validation and troubleshooting — in [DEPLOYMENT.md § 5](DEPLOYMENT.md).
 
-**To trigger the skill**, say: *"Screen Beyond Meat for the deal team"* — any ticker or company name. There is no command to remember. A correct result carries `[S1]`-style markers throughout and a Sources table; figures without source markers mean the skill is not being used.
+Two things that catch people out here: **point `command` at the virtualenv's Python** by absolute path — the client does not inherit an activated venv — and **never run `src/server.py` yourself**. It speaks MCP over stdio, so it waits silently on standard input and looks hung when it is working correctly. The client starts it.
 
-Run `python scripts/doctor.py` first. It checks Python version, dependencies, the contact header, each of the three SEC hosts separately, a live screen, the 8 registered tools and the skill frontmatter — and prints the fix for whatever fails. Verifying before wiring into a client matters, because otherwise a broken install first appears as a skill silently returning nothing inside a conversation.
+**To trigger the skill**, say: *"Screen Beyond Meat for the deal team"* — any ticker or company name. A correct result carries `[S1]`-style markers throughout and a Sources table; figures without source markers mean the skill is not being used.
 
 - **Installing for a team?** → [DEPLOYMENT.md](DEPLOYMENT.md) — security posture, egress requirements, troubleshooting
 - **Extending or maintaining it?** → [DEVELOPING.md](DEVELOPING.md) — test harness, fixtures, tuning knobs, invariants
