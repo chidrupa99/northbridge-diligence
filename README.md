@@ -213,9 +213,11 @@ One limit worth stating: the suite is offline, so it verifies *logic*, not *inst
 
 ## Sample output
 
-`samples/BYND_screening_memo.md` and `samples/BYND_screening_memo.html` — a real screen of **Beyond Meat (BYND)**, generated live from EDGAR.
+Two real screens, generated live from EDGAR, each as Markdown and a self-contained HTML one-pager. The brief asks for one; a second is included because a single company cannot show that the tool *discriminates*.
 
-It demonstrates the thing that separates a real screen from a naive one. FY2025 **net income is positive (+$219M) while the operating business lost −$334M**. A naive tool reports "profitable." This one raises an `EARNINGS_QUALITY` flag naming the ~$553M of profit that came from outside the operating business, marks debt/equity unmeaningful because equity is negative, and tells the deal lead to identify the non-operating item before treating the company as profitable — because that item is *not* isolable from XBRL, and saying so is more useful than guessing at it. Every figure links to its filing.
+**[Beyond Meat](samples/BYND_screening_memo.md) — the distress case.** Five flags fire. It demonstrates the thing that separates a real screen from a naive one: FY2025 **net income is positive (+$219M) while the operating business lost −$334M**. A naive tool reports "profitable." This one raises an `EARNINGS_QUALITY` flag naming the ~$553M of profit that came from outside the operating business, marks debt/equity unmeaningful because equity is negative, and tells the deal lead to identify the non-operating item first — because that item is *not* isolable from XBRL, and saying so is more useful than guessing at it.
+
+**[Target](samples/TGT_screening_memo.md) — the healthy case.** Every solvency flag stays silent, which is the harder thing to demonstrate. Revenue is flat over five years while operating income fell 43%, so the finding is a margin problem inside a sound balance sheet. The one flag that does fire — `LIQUIDITY`, current ratio 0.94 — is shown in the memo to be an artefact of applying one global threshold to a retailer, where payables structurally exceed receivables, rather than a finding. That is a seam this README already declares, caught working in public. Target also exercises the January fiscal year end, a mid-history tag switch across six series, and a gross margin derived because `GrossProfit` has been untagged since FY2017.
 
 ---
 

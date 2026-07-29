@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Screening Memo — Target Corporation (TGT)</title>
+<style>
+  :root{
+    --ink:#12161f; --muted:#5c6673; --line:#e4e8f0; --bg:#f6f7fb; --panel:#fff;
+    --navy:#1f3352; --accent:#2f5bd6; --bad:#c0392b; --warn:#b9761a; --ok:#1a9e6a; --chip:#eef1f8;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:14.5px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  .page{max-width:900px;margin:24px auto;background:var(--panel);border:1px solid var(--line);
+    border-radius:14px;padding:34px 40px 40px;box-shadow:0 1px 3px rgba(20,30,50,.05)}
+  .top{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid var(--navy);padding-bottom:14px;gap:18px}
+  h1{font-size:22px;margin:0;color:var(--navy);letter-spacing:-.2px}
+  .sub{color:var(--muted);font-size:12.5px;margin-top:4px}
+  .badge{display:inline-block;background:#fbecea;color:var(--bad);border:1px solid #f0c8c2;
+    border-radius:999px;padding:5px 14px;font-weight:700;font-size:12.5px;white-space:nowrap}
+  .snap{background:#f8fafc;border-left:3px solid var(--navy);padding:12px 16px;margin:18px 0;border-radius:0 8px 8px 0}
+  h2{font-size:12px;text-transform:uppercase;letter-spacing:.11em;color:var(--accent);margin:26px 0 10px;border-bottom:1px solid var(--line);padding-bottom:5px}
+  .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0}
+  @media(max-width:640px){.kpis{grid-template-columns:repeat(2,1fr)}}
+  .kpi{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:#fcfdff}
+  .kpi .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+  .kpi .v{font-size:21px;font-weight:700;margin-top:3px}
+  .kpi .v.na{font-size:14px;font-weight:700;color:var(--muted);letter-spacing:.02em}
+  .kpi .n{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .neg{color:var(--bad)} .pos{color:var(--ok)} .amb{color:var(--warn)}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0}
+  th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:right}
+  th:first-child,td:first-child{text-align:left}
+  th{background:#f4f6fb;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+  .flag{padding:9px 12px;border-radius:8px;margin:7px 0;font-size:13px;border:1px solid;display:flex;gap:10px;align-items:flex-start}
+  .flag.red{background:#fbecea;border-color:#f0c8c2}
+  .flag.amber{background:#fdf5e8;border-color:#f0dcb4}
+  .flag.grey{background:#f5f6f9;border-color:#e2e6ee}
+  .sev{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+    border-radius:4px;padding:2px 6px;white-space:nowrap;margin-top:1px}
+  .sev.h{background:#c0392b;color:#fff} .sev.m{background:#b9761a;color:#fff} .sev.i{background:#7a8496;color:#fff}
+  .code{font-weight:700;color:var(--navy)}
+  .note{background:#f8fafc;border:1px dashed #c6d0e2;border-radius:10px;padding:14px 16px;margin:14px 0;font-size:13.5px}
+  .src{font-size:11.5px;color:var(--muted)}
+  a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+  .ref{color:var(--accent);font-size:11px;font-weight:600;vertical-align:super}
+  .foot{margin-top:24px;padding-top:12px;border-top:1px solid var(--line);color:var(--muted);font-size:11.5px}
+  code{background:var(--chip);padding:1px 5px;border-radius:4px;font-size:12px}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="top">
+    <div>
+      <h1>Screening Memo — Target Corporation (TGT)</h1>
+      <div class="sub">Prepared for the Northbridge deal team · Source: SEC EDGAR · FY2025 basis · 29 July 2026</div>
+    </div>
+    <span class="badge" style="background:#eef4fb;color:#1f3352;border-color:#c9d8ea">Neutral</span>
+  </div>
+
+  <div class="snap">
+    <b>Snapshot.</b> Target (NYSE: TGT) is a general-merchandise retailer at scale and at a plateau.
+    Revenue is <b>flat over five years</b> — $106.0B in FY2021 to <b>$104.8B</b> in FY2025, a
+    <b>−0.3% CAGR</b><span class="ref">[S1,S3]</span> — while operating income fell <b>43%</b>, from
+    $8,946M to <b>$5,117M</b><span class="ref">[S1,S3]</span>. Leverage is <b>1.75x</b> and interest
+    coverage <b>11.5x</b><span class="ref">[S1]</span>. A margin problem inside a stable,
+    well-capitalised business — not a solvency one.
+    <div style="margin-top:8px"><b>The question:</b> was FY2021's 8.4% operating margin the anomaly,
+    or is FY2025's 4.9% the new normal?</div>
+  </div>
+
+  <div class="src" style="margin:14px 0;padding:10px 14px;background:#f8fafc;border-left:3px solid #5c6673;border-radius:0 8px 8px 0">
+    <b>Fiscal calendar.</b> Target's year ends the Saturday closest to 31 January, so FY2025 ended
+    <b>2026-01-31</b> and FY2023 ended 2024-02-03. Comparing against a December filer's like-numbered
+    year introduces an eleven-month offset.
+  </div>
+
+  <h2>Headline metrics — FY2025</h2>
+  <div class="kpis">
+    <div class="kpi"><div class="l">Revenue</div><div class="v">$104.8B</div><div class="n">−0.3% CAGR since FY2021 <span class="ref">[S1]</span></div></div>
+    <div class="kpi"><div class="l">Operating margin</div><div class="v neg">4.9%</div><div class="n">from 8.4% in FY2021 <span class="ref">[S1]</span></div></div>
+    <div class="kpi"><div class="l">Debt / EBITDA</div><div class="v pos">1.75x</div><div class="n">vs. a 4.0x flag threshold <span class="ref">[S1]</span></div></div>
+    <div class="kpi"><div class="l">Interest coverage</div><div class="v pos">11.5x</div><div class="n">vs. a 2.0x floor <span class="ref">[S1]</span></div></div>
+    <div class="kpi"><div class="l">Free cash flow</div><div class="v pos">$2.8B</div><div class="n">positive in 4 of 5 years <span class="ref">[S1]</span></div></div>
+    <div class="kpi"><div class="l">Current ratio</div><div class="v">0.94x</div><div class="n">flagged — but normal for retail <span class="ref">[S1]</span></div></div>
+  </div>
+
+  <h2>Financial trajectory</h2>
+  <table>
+    <tr><th style="text-align:left">$M (FY ends late Jan)</th><th>FY2021</th><th>FY2022</th><th>FY2023</th><th>FY2024</th><th>FY2025</th></tr>
+    <tr><td style="text-align:left">Revenue</td><td>106,005</td><td>109,120</td><td>107,412</td><td>106,566</td><td>104,780</td></tr>
+    <tr><td style="text-align:left">Operating income</td><td>8,946</td><td>3,848</td><td>5,707</td><td>5,566</td><td>5,117</td></tr>
+    <tr><td style="text-align:left">Net income</td><td>6,946</td><td>2,780</td><td>4,138</td><td>4,091</td><td>3,705</td></tr>
+    <tr><td style="text-align:left">Cash from operations</td><td>8,625</td><td>4,018</td><td>8,621</td><td>7,367</td><td>6,562</td></tr>
+    <tr><td style="text-align:left">Free cash flow</td><td>5,081</td><td>(1,510)</td><td>3,815</td><td>4,476</td><td>2,835</td></tr>
+    <tr><td style="text-align:left">Gross margin</td><td>29.3%</td><td>24.6%</td><td>27.5%</td><td>28.2%</td><td>27.9%</td></tr>
+    <tr><td style="text-align:left">Operating margin</td><td>8.4%</td><td>3.5%</td><td>5.3%</td><td>5.2%</td><td>4.9%</td></tr>
+  </table>
+
+  <p>A shock followed by an incomplete recovery. FY2022 was the break — gross margin fell 470bp to 24.6%,
+  operating margin more than halved, and free cash flow went <b>negative (−$1,510M)</b> as capex peaked at
+  $5,528M against collapsed operating cash flow<span class="ref">[S1,S2]</span>. Gross margin has since
+  recovered to 27.9%, within 140bp of FY2021.</p>
+
+  <p><b>Operating margin has not.</b> It sits at 4.9% and has drifted <i>down</i> in each of the last three
+  years (5.3% → 5.2% → 4.9%) even as gross margin held. Gross recovering while operating does not points at
+  costs below the gross line rather than at pricing or mix — worth isolating before forming a view.</p>
+
+  <h2>Capital structure</h2>
+  <table>
+    <tr><th style="text-align:left">$M</th><th>FY2023</th><th>FY2024</th><th>FY2025</th></tr>
+    <tr><td style="text-align:left">Cash and equivalents</td><td>3,805</td><td>4,762</td><td>5,488</td></tr>
+    <tr><td style="text-align:left">Long-term debt</td><td>14,151</td><td>13,904</td><td>14,398</td></tr>
+    <tr><td style="text-align:left">Shareholders' equity</td><td>13,432</td><td>14,666</td><td>16,165</td></tr>
+    <tr><td style="text-align:left">Debt / EBITDA (proxy)</td><td>1.66x</td><td>1.63x</td><td>1.75x</td></tr>
+    <tr><td style="text-align:left">Interest coverage</td><td>11.4x</td><td>13.5x</td><td>11.5x</td></tr>
+  </table>
+  <p>Comfortable on every solvency measure. Leverage stable near 1.7x against a 4.0x threshold, coverage
+  11.5x against a 2.0x floor, equity up $2.7B in two years, cash up 44% since FY2023<span class="ref">[S1]</span>.</p>
+  <div class="flag grey"><span class="sev i">Caveat</span><div><b>Total debt is understated.</b> The filer does not tag a current-debt concept in this window, so the figure reflects long-term debt only; current maturities are excluded. Reported as a gap rather than estimated.<span class="ref">[S1]</span></div></div>
+
+  <h2>Risk signals — computed</h2>
+  <div class="src" style="margin-bottom:6px">Raised in code against fixed thresholds. Every high/medium flag appears here; none added or removed by hand.</div>
+  <div class="flag red"><span class="sev h">High</span><div><span class="code">LIQUIDITY</span> — Current ratio is 0.94 (below the 1.0 floor); current liabilities exceed current assets. <span class="ref">[S1]</span></div></div>
+  <div class="flag grey"><span class="sev i">Read as</span><div><b>Structural, not deteriorating.</b> A sub-1.0 current ratio is normal for a large-format retailer — inventory turns fast and suppliers are paid on terms, so payables structurally exceed receivables. Target's ratio has sat between 0.91x and 0.99x in <i>every</i> year of the window<span class="ref">[S1]</span>. Against 11.5x coverage and $5.5B of cash, this is not a liquidity concern.<br><br>It is the clearest illustration of a stated limitation: <b>thresholds are one global set</b>. A 1.0x floor is right for a manufacturer and wrong for a retailer. The flag is correct — the rule fired as specified — but a deal lead should read it as an artefact of the threshold. Sector-relative bands are on the roadmap for exactly this.</div></div>
+  <p style="font-size:13px;color:#5c6673"><b>No other flag fired.</b> Specifically absent: <code>NEGATIVE_EQUITY</code>, <code>EARNINGS_QUALITY</code>, <code>NEGATIVE_EBITDA</code>, <code>LEVERAGE</code>, <code>COVERAGE</code>, <code>REVENUE_DECLINE</code>, <code>CASH_BURN</code>, <code>STALE_DATA</code>.</p>
+
+  <h2>Disclosure signals — full-text search</h2>
+  <div class="src" style="margin-bottom:6px">Every Target filing since 2001. Boilerplate-vs-signal verdict computed against the 11 annual reports on file.</div>
+  <div class="flag grey"><span class="sev i">Absent</span><div><span class="code">GOING_CONCERN</span> — <i>"substantial doubt"</i> appears in no Target filing<span class="ref">[S5]</span>. Expected, and confirmed rather than assumed.</div></div>
+  <div class="flag grey"><span class="sev i">Absent</span><div><span class="code">CUSTOMER_CONCENTRATION</span> — no hits<span class="ref">[S5]</span>. Expected for a retailer with no single material customer.</div></div>
+  <div class="flag grey"><span class="sev i">Boilerplate</span><div><span class="code">MATERIAL_WEAKNESS</span> — present in all 11 annual reports, the signature of the auditor's standard description of its own testing method<span class="ref">[S5]</span>. <b>Not a finding.</b></div></div>
+  <div class="flag grey"><span class="sev i">Boilerplate</span><div><span class="code">GOODWILL_IMPAIRMENT</span> — present in all 11 annual reports<span class="ref">[S5]</span>. Standing accounting-policy language, not an event.</div></div>
+
+  <h2>Data gaps &amp; caveats</h2>
+  <div class="flag grey"><span class="sev i">Info</span><div><span class="code">TAG_DISCONTINUED</span> — <code>gross_profit</code> not tagged after FY2017. Gross margin above is <b>derived</b> from revenue less cost of revenue and cites both inputs, rather than pairing a stale FY2017 numerator with current revenue.<span class="ref">[S1]</span></div></div>
+  <div class="flag grey"><span class="sev i">Info</span><div><span class="code">MIXED_TAG_BASIS</span> — six series stitched across more than one US-GAAP tag: <code>interest_expense</code>, <code>long_term_debt</code>, <code>net_income</code>, <code>operating_cash_flow</code>, <code>revenue</code>, <code>stockholders_equity</code>.<span class="ref">[S1]</span></div></div>
+  <ul>
+    <li><code>current_debt</code> and <code>total_liabilities</code> are not tagged in this window — reported absent, never estimated.</li>
+    <li>EBITDA is a proxy (operating income + D&amp;A), not Target's own or any credit-agreement definition.</li>
+    <li>Sources point at the filing each figure was <i>actually read from</i>, under an <code>as_last_reported</code> policy: FY2023–FY2025 from the FY2025 10-K, FY2022 from the FY2024 10-K, FY2021 from the FY2023 10-K. No restatements detected.</li>
+    <li>Covenant compliance was not checked — no exact search phrase proved reliable enough to ship. Low concern at 1.75x, but stated rather than implied.</li>
+    <li>A first-pass screen from public filings only — not investment advice, a valuation, or a full diligence review.</li>
+  </ul>
+
+  <h2>Sources</h2>
+  <table>
+    <tr><th>Ref</th><th style="text-align:left">Filing</th><th>Filed</th><th style="text-align:left">Accession</th><th style="text-align:left">Used for</th></tr>
+    <tr><td>S1</td><td style="text-align:left"><a href="https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/tgt-20260131.htm">10-K (FY2025, period ended 2026-01-31)</a></td><td>2026-03-11</td><td style="text-align:left" class="src">0000027419-26-000016</td><td style="text-align:left" class="src">FY2023–FY2025, flags</td></tr>
+    <tr><td>S2</td><td style="text-align:left"><a href="https://www.sec.gov/Archives/edgar/data/27419/000002741925000018/0000027419-25-000018-index.htm">10-K (FY2024 report)</a></td><td>2025-03-12</td><td style="text-align:left" class="src">0000027419-25-000018</td><td style="text-align:left" class="src">FY2022 figures</td></tr>
+    <tr><td>S3</td><td style="text-align:left"><a href="https://www.sec.gov/Archives/edgar/data/27419/000002741924000032/0000027419-24-000032-index.htm">10-K (FY2023 report)</a></td><td>2024-03-13</td><td style="text-align:left" class="src">0000027419-24-000032</td><td style="text-align:left" class="src">FY2021 (CAGR base)</td></tr>
+    <tr><td>S4</td><td style="text-align:left"><a href="https://www.sec.gov/Archives/edgar/data/27419/000002741926000022/tgt-20260502.htm">10-Q (period ended 2026-05-02)</a></td><td>2026-05-29</td><td style="text-align:left" class="src">0000027419-26-000022</td><td style="text-align:left" class="src">Latest interim</td></tr>
+    <tr><td>S5</td><td style="text-align:left"><a href="https://efts.sec.gov/LATEST/search-index?q=%22substantial+doubt%22&amp;ciks=0000027419">EDGAR full-text search — all Target filings, 2001–present</a></td><td>—</td><td style="text-align:left" class="src">—</td><td style="text-align:left" class="src">Disclosure-signal presence / absence</td></tr>
+  </table>
+
+  <div class="foot">
+    Generated by the <code>company-screen</code> skill over the northbridge-diligence MCP server.
+    All figures pulled live from SEC EDGAR. Ratios, meaningfulness verdicts and risk flags are computed
+    in Python — re-running the screen returns identical flags.
+  </div>
+</div>
+</body>
+</html>
