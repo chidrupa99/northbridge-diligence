@@ -47,36 +47,68 @@ The same blob also hands us every prior-year comparative for free — a FY2025 1
 
 ## Setup
 
+**Prerequisites:** Python **3.10 or newer** (the MCP SDK requires it, and this code uses 3.10+ type syntax), and an MCP client — Claude Desktop or Claude Code.
+
+### 1. Install
+
 ```bash
-# 1. Install
+python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-
-# 2. Set your SEC fair-access header (REQUIRED — EDGAR returns HTTP 403 without it)
-export EDGAR_USER_AGENT="Chidrupa Mamunooru chidrupa.mamunooru@example.com"
-
-# 3. Run the server (stdio transport)
-python src/server.py
 ```
 
-> Substitute a real, reachable address — SEC's fair-access policy expects a contact they can actually use.
+### 2. Identify yourself to SEC
 
-### Register with an MCP client (e.g. Claude Desktop / Claude Code)
+```bash
+export EDGAR_USER_AGENT="Your Name you@example.com"
+```
+
+Required — EDGAR returns **HTTP 403** to unidentified clients. Use a real, reachable address; SEC's fair-access policy expects a contact they could actually use.
+
+### 3. Verify before wiring anything up
+
+```bash
+python scripts/doctor.py                                  # live — proves it works HERE
+pip install -r requirements-dev.txt && python -m pytest   # optional — the offline suite
+```
+
+The two answer different questions, and for an install it's `doctor.py` that matters.
+
+`doctor.py` makes real calls and checks what actually breaks on a new machine: Python version, missing dependencies, an unset or rejected `EDGAR_USER_AGENT`, and reachability of all three SEC hosts (`www`, `data` and `efts` are separate origins, and a corporate egress allowlist routinely permits one and not the others). It ends with a real screen of Apple, confirms the server registers its 8 tools, and validates the skill's frontmatter. Each failure prints the fix; exit code is 0 only if everything passed, so it can gate a deploy.
+
+`pytest` runs against recorded fixtures and never opens a socket. That makes it fast and deterministic — but it would pass on a machine with EDGAR firewalled and no contact header set, so it verifies the *logic*, not the *install*. It needs the dev dependencies, which is why they're installed inline above rather than in step 1.
+
+Do this **before** step 4. Otherwise a broken install first shows up as a skill that mysteriously returns nothing inside a Claude conversation — the worst place to debug it.
+
+### 4. Register with an MCP client
 
 ```jsonc
 {
   "mcpServers": {
     "northbridge-diligence": {
-      "command": "python",
+      "command": "/absolute/path/to/northbridge-diligence/.venv/bin/python",
       "args": ["/absolute/path/to/northbridge-diligence/src/server.py"],
-      "env": { "EDGAR_USER_AGENT": "Chidrupa Mamunooru chidrupa.mamunooru@example.com" }
+      "env": { "EDGAR_USER_AGENT": "Your Name you@example.com" }
     }
   }
 }
 ```
 
-### Install the skill
+Two things worth knowing here:
 
-Copy `skill/` into your Claude skills directory (`~/.claude/skills/company-screen/`) or upload it. Then just say: **"Screen Beyond Meat for the deal team"** (or any ticker/name). The skill triggers, calls the MCP tools, and produces the memo.
+- **You never run `src/server.py` yourself.** It speaks MCP over *stdio*, meaning it waits silently on standard input — run it in a terminal and you get a cursor that never returns, which looks broken but isn't. The client starts it for you, the way an OS talks to a plugged-in device.
+- **Point `command` at the virtualenv's Python**, not bare `python`. The client launches the server in its own environment and will not have your activated venv, so a bare `python` usually resolves to a system install without the dependencies.
+
+The `env` block is separate from the `export` in step 2 — that one covers the tests and `doctor.py`, this one covers the server as the client runs it. Both need setting.
+
+### 5. Install the skill
+
+```bash
+cp -r skill ~/.claude/skills/company-screen
+```
+
+### 6. First run
+
+Say: **"Screen Beyond Meat for the deal team"** — or any ticker or company name. The skill triggers on the request itself; there's no command to remember. You should get a memo with `[S1]`-style markers throughout and a Sources table at the bottom. If figures appear without source markers, the skill is not being used.
 
 ---
 
