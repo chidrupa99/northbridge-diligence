@@ -54,7 +54,7 @@ log = logging.getLogger("northbridge.edgar")
 
 # SEC requires a real contact in the UA string. Override via env in production.
 USER_AGENT = os.environ.get(
-    "EDGAR_USER_AGENT", "Northbridge Diligence Tool chidrupa.mamunooru@example.com"
+    "EDGAR_USER_AGENT", "Northbridge Diligence Tool contact@example.com"
 )
 _MIN_INTERVAL = 0.12   # ~8 req/s, comfortably under the 10 req/s ceiling
 _TIMEOUT = 20

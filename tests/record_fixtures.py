@@ -3,7 +3,7 @@ record_fixtures.py — snapshot the EDGAR responses the test suite runs against.
 
 Run this deliberately, not in CI:
 
-    EDGAR_USER_AGENT="Chidrupa Mamunooru chidrupa.mamunooru@example.com" \
+    EDGAR_USER_AGENT="Your Name you@example.com" \
         python tests/record_fixtures.py
 
 Why record instead of mocking by hand: the failure modes worth testing (a filer

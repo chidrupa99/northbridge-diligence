@@ -7,7 +7,7 @@ clear, model-facing docstring. Tool docstrings are the model's only spec for
 *when* and *how* to call a tool, so they are written for that audience.
 
 Run:  python src/server.py        (stdio transport, for MCP clients)
-Env:  EDGAR_USER_AGENT="Chidrupa Mamunooru chidrupa.mamunooru@example.com"
+Env:  EDGAR_USER_AGENT="Your Name you@example.com"
       # SEC fair-access header — substitute a real, reachable contact.
 """
 
