@@ -76,7 +76,7 @@ Restart, and that is the install. The plugin ships the MCP server config **and**
 
 Confirm with `python scripts/doctor.py`: check 11 reports `wired: Plugin (bundled)`.
 
-> [!NOTE]
+> [!IMPORTANT]
 > **On Windows**, edit one line in `plugin/.mcp.json` before installing: change the command to `${CLAUDE_PLUGIN_ROOT}/../.venv/Scripts/edgar-mcp.exe`. A single bundled config cannot cover both platforms — the interpreter path differs and there is no conditional syntax.
 
 ### 3. Use it
@@ -85,57 +85,15 @@ Say: ***"Screen Beyond Meat for the deal team"***. See [Triggering the skill](#t
 
 ---
 
-<details>
-<summary><b>Not using Claude Code?</b> — Claude Desktop chat and claude.ai need a different route</summary>
+> [!NOTE]
+> **Not using Claude Code?** Plugins are a Claude Code feature, so two surfaces need a different route.
+>
+> **Claude Desktop chat (Cowork)** — register the server by hand in `claude_desktop_config.json`, and enable the skill for your claude.ai account via **Customize** in the sidebar. Cowork sessions do *not* read `~/.claude/skills/`. **Quit the app before editing its config** — it flushes its own preferences over your write while running.
+>
+> **claude.ai web and mobile** — not possible. `edgar-mcp` speaks MCP over stdio, so the client launches it as a local child process, and a process in Anthropic's cloud cannot spawn a binary on your laptop. An account-synced skill will still *trigger* there but its tools are unreachable, which looks installed and produces nothing.
+>
+> Full walkthrough for both — per-platform config paths, the merge case when other MCP servers are already registered, the surface matrix, and hand-installing the skill for Claude Code — is in **[DEPLOYMENT.md](DEPLOYMENT.md)**.
 
-Plugins are a Claude Code feature. Two other cases:
-
-**Claude Desktop chat (Cowork).** Register the server by hand in
-`%APPDATA%\Claude\claude_desktop_config.json` (Windows) or
-`~/Library/Application Support/Claude/claude_desktop_config.json` (macOS), or via
-Settings → Developer → Edit Config. **Quit the app first** — it flushes its own
-preferences over your edit while running, and an added `mcpServers` key was
-observed vanishing within two minutes.
-
-```jsonc
-{
-  "mcpServers": {
-    "northbridge-diligence": {
-      "command": "/absolute/path/to/northbridge-diligence/.venv/bin/edgar-mcp",
-      "env":     { "EDGAR_USER_AGENT": "Your Org you@example.com" }
-    }
-  }
-}
-```
-
-Print the exact command path with `python -c "import shutil; print(shutil.which('edgar-mcp'))"`.
-
-For the skill: Cowork sessions do **not** read `~/.claude/skills/`. Enable it for
-your claude.ai account via **Customize** in the Desktop sidebar.
-
-**claude.ai web and mobile.** Not possible. `edgar-mcp` speaks MCP over stdio, so
-the client launches it as a local child process — a process in Anthropic's cloud
-cannot spawn a binary on your laptop. An account-synced skill will still *trigger*
-there, but its tools are unreachable, which looks installed and produces nothing.
-Serving those surfaces needs a remote HTTP/SSE server as a Custom Connector, which
-this repo does not build.
-
-**Hand-installing the skill for Claude Code**, if you would rather not use the plugin:
-
-```bash
-mkdir -p ~/.claude/skills && cp -r skill ~/.claude/skills/company-screen
-```
-
-```powershell
-New-Item -ItemType Directory -Force "$HOME\.claude\skills" | Out-Null
-Copy-Item -Recurse -Force .\skill "$HOME\.claude\skills\company-screen"
-```
-
-`doctor.py` accepts either shape. Full per-platform walkthrough, the merge case
-when other MCP servers are already registered, and the surface matrix are in
-[DEPLOYMENT.md](DEPLOYMENT.md).
-
-</details>
 
 - **Installing for a team?** → [DEPLOYMENT.md](DEPLOYMENT.md) — security posture, egress requirements, troubleshooting
 - **Extending or maintaining it?** → [DEVELOPING.md](DEVELOPING.md) — test harness, fixtures, tuning knobs, invariants
