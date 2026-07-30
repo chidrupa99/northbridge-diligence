@@ -99,11 +99,14 @@ This one is not a shell command. It edits a **JSON configuration file** on disk 
 
 | Surface | MCP server config | Skill location | Works? |
 |---|---|---|---|
-| **Claude Code** | `~/.claude.json` → top-level `mcpServers` (user scope, applies to every project) · or `claude mcp add …` if the standalone CLI is on PATH · or a project-level `.mcp.json` (binds to one folder only) | `~/.claude/skills/company-screen` | **Yes** |
-| **Claude Desktop** | `%APPDATA%\Claude\claude_desktop_config.json` (Windows) · `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) · or Settings → Developer → Edit Config | *Not verified — see note below* | Server: **yes** |
-| **claude.ai web / mobile** | Not possible — `edgar-mcp` speaks stdio and runs as a local child process; a cloud process cannot spawn a binary on the user's machine. Would need a remote HTTP/SSE server registered as a Custom Connector, which this repo does not build | — | **No** |
+| **Claude Code** — the CLI, or a Code session launched inside the Desktop app | `~/.claude.json` → top-level `mcpServers` (user scope, every project) · or `claude mcp add …` if the CLI is on PATH · or a project-level `.mcp.json` (that folder only) | `~/.claude/skills/company-screen` | **Yes** |
+| **Claude Desktop — Cowork / chat sessions** | `%APPDATA%\Claude\claude_desktop_config.json` (Windows) · `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) · or Settings → Developer → Edit Config | **Not `~/.claude/skills/`.** Cowork sessions do not read that directory — enable the skill for your claude.ai account via **Customize** in the Desktop sidebar | **Yes**, both halves — but the skill comes from account sync, not the filesystem |
+| **claude.ai web / mobile** | Not possible — `edgar-mcp` speaks stdio and runs as a local child process; a cloud process cannot spawn a binary on your machine. Would need a remote HTTP/SSE server as a Custom Connector, which this repo does not build | Account-synced skills do load here | **No** — the skill triggers but its tools are unreachable |
 
-> **Note on Desktop skills.** `~/.claude/skills/` is confirmed to work for Claude Code. Where Claude Desktop loads skills from was not verified while building this, so that cell is deliberately left open rather than guessed at — check current Anthropic documentation. If Desktop is your surface and the server works but the skill never fires, that is the first thing to look at.
+> [!NOTE]
+> **"Claude Desktop" is two surfaces, and this is what most installs get wrong.** Per the [Claude Code skills docs](https://code.claude.com/docs/en/skills): *"Cowork sessions and cloud sessions… don't read `~/.claude/skills/` on your machine. Both interactive and scheduled Cowork sessions load the skills enabled for your claude.ai account."* A Claude Code session in the Desktop app **does** read the local directory; a Cowork chat session in the same app does **not**. Desktop scheduled tasks run locally and behave like any local session.
+>
+> The claude.ai row is the trap worth knowing: you can enable the skill for your account there and it will trigger, but the MCP server is not reachable, so it has no data. The skill's "no figure without a citation" rule should make that fail visibly rather than invent numbers — but you will see a skill that looks installed and produces nothing.
 
 **Where the file lives:**
 

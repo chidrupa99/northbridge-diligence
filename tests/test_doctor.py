@@ -128,13 +128,16 @@ class TestCheckClients:
         assert doctor.check_clients() is True
         assert "wired: Claude Code (user scope)" in capsys.readouterr().out
 
-    def test_desktop_only_plus_code_skill_dir_warns_about_the_split(
+    def test_desktop_only_warns_that_cowork_does_not_read_the_skill_dir(
         self, tmp_path, monkeypatch, capsys
     ):
         """The exact Windows failure, reproduced.
 
-        MCP server on Claude Desktop, skill in Claude Code's directory. Both
-        halves installed, neither surface complete.
+        MCP server registered with Claude Desktop, skill copied to
+        ~/.claude/skills/. Per the Claude Code skills docs, Cowork sessions --
+        the Desktop chat surface -- do not read that directory at all; they load
+        skills enabled for the claude.ai account. Both halves installed, and the
+        surface in use sees only one of them.
         """
         command = tmp_path / "edgar-mcp"
         command.write_text("")
@@ -149,9 +152,11 @@ class TestCheckClients:
         assert doctor.check_clients() is True
         # Normalised: the note is word-wrapped, so phrases span line breaks.
         out = " ".join(capsys.readouterr().out.split())
-        assert "different surfaces" in out
-        # Must not assert where Desktop reads skills from — that is unverified.
-        assert "not something this script verifies" in out
+        # Names the actual mechanism, not a vague "check your surfaces".
+        assert "does NOT read ~/.claude/skills/" in out
+        assert "claude.ai account" in out
+        # And distinguishes the two Desktop session types rather than conflating them.
+        assert "Claude Code session inside the Desktop app" in out
 
     def test_unreadable_config_fails_with_the_json_diagnosis(
         self, tmp_path, monkeypatch, capsys

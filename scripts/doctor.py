@@ -420,13 +420,18 @@ def check_clients() -> bool:
 
     # The exact shape of the Windows failure: MCP on one surface, skill on another.
     only_desktop = wired == ["Claude Desktop"]
-    if only_desktop and skill_installed:
+    if only_desktop:
+        # Per the Claude Code skills docs, Cowork sessions -- the Desktop chat
+        # surface -- do not read ~/.claude/skills/ at all; they load skills
+        # enabled for the claude.ai account. A Claude Code session launched
+        # inside the Desktop app does read it. Same app, two surfaces, and this
+        # is the split that produced a healthy-looking but non-working install.
         notes.append(
-            "server is registered with Claude Desktop, and the skill is in "
-            "~/.claude/skills/ which is Claude Code's directory. If the skill is not "
-            "firing, the two halves are on different surfaces — see DEPLOYMENT.md "
-            "section 5. (Where Claude Desktop reads skills from is not something this "
-            "script verifies.)"
+            "the server is registered with Claude Desktop only. If you use the Desktop "
+            "chat (Cowork) surface, it does NOT read ~/.claude/skills/ — enable the "
+            "skill for your claude.ai account via Customize in the Desktop sidebar. "
+            "A Claude Code session inside the Desktop app does read the local "
+            "directory. See DEPLOYMENT.md section 5."
         )
     if not skill_installed:
         notes.append(
@@ -481,7 +486,9 @@ def check_skill() -> bool:
             fix="Over the limit means the skill silently fails to load. Shorten it.",
         )
     installed = pathlib.Path.home() / ".claude" / "skills" / "company-screen"
-    where = "also installed at ~/.claude/skills/" if installed.exists() else \
+    # Present on disk is not the same as visible to the surface in use: Cowork
+    # sessions load skills from the claude.ai account, not from this directory.
+    where = "also in ~/.claude/skills/ (read by Claude Code)" if installed.exists() else \
             "not yet copied to ~/.claude/skills/ — run: " \
             "mkdir -p ~/.claude/skills && cp -r skill ~/.claude/skills/company-screen"
     return report(True, "Skill", f"{name}, frontmatter valid — {where}")
