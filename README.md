@@ -47,7 +47,10 @@ The same blob also hands us every prior-year comparative for free — a FY2025 1
 
 ## Setup
 
-**Prerequisites:** Python **3.10 or newer** and an MCP client (Claude Desktop or Claude Code). Nothing else — SEC EDGAR is public, so there is no account, API key or cost.
+**Prerequisites:** Python **3.10 or newer** and a **desktop-class** MCP client — Claude Desktop or Claude Code. Nothing else: SEC EDGAR is public, so there is no account, API key or cost.
+
+> [!IMPORTANT]
+> **`edgar-mcp` speaks MCP over stdio, which makes it a local child process.** The client launches it on your machine and talks to it over standard input and output. That has one hard consequence: **claude.ai in a browser and the mobile apps cannot reach it at all** — a process running in Anthropic's cloud cannot spawn a binary on your laptop. Serving those surfaces would need a remote HTTP/SSE server registered as a Custom Connector, which this repo does not build.
 
 ```bash
 # 0. Get the code, and confirm your Python before building anything
@@ -63,19 +66,26 @@ pip install -e .
 # 2. Identify yourself to SEC (a contact string, not a credential)
 export EDGAR_USER_AGENT="Your Org you@example.com"    # Windows: set EDGAR_USER_AGENT=...
 
-# 3. Verify — 10 checks, each failure prints its own fix
+# 3. Verify what you have so far — the last check will fail until step 5
 python scripts/doctor.py
-
-# 4. Install the skill  (mkdir first — the directory may not exist yet)
-mkdir -p ~/.claude/skills
-cp -r skill ~/.claude/skills/company-screen
 ```
 
 Step 0 matters: `doctor.py` deliberately runs on **any** Python version, so a too-old interpreter is reported in its first line rather than as a confusing dependency error three steps later. If `python3` on your machine is older than 3.10, look for a newer one (`ls /usr/local/bin/python3.*`, or `brew install python@3.12`) and use that name in step 1.
 
-`export` sets an **environment variable** — a value the terminal remembers for this session and hands to any program launched from it. SEC returns HTTP 403 to unidentified clients, so both `doctor.py` and the server need it.
+`export` sets an **environment variable** — a value the terminal remembers for this session and hands to any program launched from it. SEC returns HTTP 403 to unidentified clients, so `doctor.py` needs it. **Your Claude client does not inherit it.** A GUI-launched app gets nothing from your shell, and each client spawns its own copy of the server, so the same value has to be repeated in the client config in step 5.
 
-**5. Register the server with your Claude client.** Not a shell command — it edits a JSON file the client reads at launch. In Claude Desktop: **Settings → Developer → Edit Config**. **Add** to what is already in that file rather than replacing it:
+### 5. Install both halves — on the *same* surface
+
+> [!WARNING]
+> **This is the step that most often goes wrong.** The tool has two halves — the MCP server and the skill — and they are configured in *different places for different clients*. Put the server on one surface and the skill on another and everything reports healthy while the skill never fires. Pick your row and do both cells.
+
+| Surface | MCP server config | Skill location | Works? |
+|---|---|---|---|
+| **Claude Code** | `~/.claude.json` → top-level `mcpServers` key (user scope, all projects) · or `claude mcp add …` if the CLI is installed · or a project-level `.mcp.json` | `~/.claude/skills/company-screen` | **Yes** |
+| **Claude Desktop** | `%APPDATA%\Claude\claude_desktop_config.json` (Windows) · `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) — or Settings → Developer → Edit Config | *Not verified by this repo — see note* | Server: **yes** |
+| **claude.ai web / mobile** | Not possible — stdio is local-only | — | **No** |
+
+The MCP server block, in whichever config your row names. **Add** it to what is already in that file rather than replacing the file — on a fresh install the `mcpServers` key is often absent entirely and has to be created alongside the existing keys:
 
 ```jsonc
 {
@@ -88,11 +98,29 @@ Step 0 matters: `doctor.py` deliberately runs on **any** Python version, so a to
 }
 ```
 
-Then **restart the client**. On Windows the command path is `...\.venv\Scripts\edgar-mcp.exe`. Print the exact path to paste with:
+On Windows the command is `...\.venv\Scripts\edgar-mcp.exe`. Print the exact path to paste, with the virtualenv active:
 
 ```bash
 python -c "import shutil; print(shutil.which('edgar-mcp'))"
 ```
+
+Then **install the skill**:
+
+```bash
+# macOS / Linux
+mkdir -p ~/.claude/skills && cp -r skill ~/.claude/skills/company-screen
+```
+
+```powershell
+# Windows PowerShell
+New-Item -ItemType Directory -Force "$HOME\.claude\skills" | Out-Null
+Copy-Item -Recurse -Force .\skill "$HOME\.claude\skills\company-screen"
+```
+
+Then **restart the client** — configs are read at launch only. Re-run `python scripts/doctor.py`; check 11 reads the client config files on disk and reports which surfaces are actually wired.
+
+> [!NOTE]
+> `~/.claude/skills/` is confirmed to work for **Claude Code**. Where Claude Desktop loads skills from was not verified while building this, so that cell is left open rather than guessed at — consult current Anthropic docs. If you are using Desktop and the server works but the skill never fires, that unverified cell is the first place to look.
 
 `edgar-mcp` is a console script `pip install` puts on the virtualenv's PATH, so the config points at a command rather than a file inside the source tree. Two things that catch people out: **use the absolute path** — the client does not inherit an activated venv, so an unqualified `edgar-mcp` will not resolve — and **never run it yourself**. It speaks MCP over stdio, so it waits silently on standard input and looks hung when it is working correctly. The client starts it.
 
@@ -131,7 +159,10 @@ A correct result has two tells:
 2. **A Sources table at the bottom**, mapping each marker to a filing accession number and URL
 
 > [!WARNING]
-> **Figures without source markers mean the skill is not being used.** Claude answered from its own knowledge instead of calling the tools, and those numbers are not traceable to a filing. Check that `skill/` was copied to `~/.claude/skills/company-screen` and that the client was restarted.
+> **Figures without source markers mean the skill is not being used.** Claude answered from its own knowledge instead of calling the tools, and those numbers are not traceable to a filing. Two causes, in order of likelihood:
+>
+> 1. **Surface mismatch** — the MCP server and the skill landed on different clients. Re-read [§ Install both halves](#5-install-both-halves--on-the-same-surface) and confirm both cells of *one* row are done. `python scripts/doctor.py` check 11 reports which surfaces are wired.
+> 2. **Skill not copied, or client not restarted** — check `~/.claude/skills/company-screen` exists and restart the client.
 
 That second tell is the whole reason attribution is structural rather than prompted: a memo either carries citations on every number or it visibly does not, and a reader can tell in one glance which one they are holding.
 

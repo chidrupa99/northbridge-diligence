@@ -13,10 +13,20 @@ User-Agent, egress rules that allow one SEC host but not another.
 Checks run in the order things fail in practice, and each one that fails prints
 what to do about it rather than just going red. Exit code is 0 only if
 everything passed, so it can gate a deploy.
+
+One gap is worth naming, because this script had it. Until the client-registration
+check existed, every check could pass while **no Claude client had the server
+registered at all** — the earlier checks import the package in-process and count
+tools, which proves the server is installable, not that anything will ever launch
+it. A Windows install hit exactly that: ten green checks, and a skill that never
+fired, because the MCP server had been registered with Claude Desktop while the
+skill sat in Claude Code's directory. `check_clients` reads the client config
+files on disk so an unwired install reports as unwired.
 """
 
 from __future__ import annotations
 
+import json
 import os
 import pathlib
 import sys
@@ -42,6 +52,37 @@ HOSTS = {
         "disclosure search",
     ),
 }
+
+SERVER_NAME = "northbridge-diligence"
+SKILL_DIR = pathlib.Path.home() / ".claude" / "skills" / "company-screen"
+
+
+def _desktop_config() -> pathlib.Path:
+    """Claude Desktop's config path for this platform."""
+    home = pathlib.Path.home()
+    if sys.platform == "darwin":
+        return home / "Library" / "Application Support" / "Claude" / "claude_desktop_config.json"
+    if os.name == "nt":
+        appdata = os.environ.get("APPDATA")
+        base = pathlib.Path(appdata) if appdata else home / "AppData" / "Roaming"
+        return base / "Claude" / "claude_desktop_config.json"
+    return home / ".config" / "Claude" / "claude_desktop_config.json"
+
+
+def client_configs() -> list[tuple[str, pathlib.Path]]:
+    """Every config file a Claude client might read, newest convention first.
+
+    Claude Code reads user scope from ~/.claude.json and project scope from a
+    .mcp.json beside the code. Claude Desktop reads its own file. They are
+    genuinely separate surfaces: registering with one does not register with the
+    other, which is the failure this whole check exists to surface.
+    """
+    return [
+        ("Claude Code (user scope)", pathlib.Path.home() / ".claude.json"),
+        ("Claude Code (project scope)", ROOT / ".mcp.json"),
+        ("Claude Desktop", _desktop_config()),
+    ]
+
 
 results: list[tuple[str, bool]] = []
 
@@ -268,9 +309,153 @@ def check_server() -> bool:
     return report(
         len(names) == 8,
         "MCP server",
-        f"{len(names)} tools registered",
+        f"{len(names)} tools registered (importable — see Client registration below)",
         fix=f"Expected 8 tools, found {len(names)}: {', '.join(names)}",
     )
+
+
+def inspect_client_config(path: pathlib.Path) -> dict:
+    """Read one client config and describe how this server is registered in it.
+
+    Returns a dict with `state` set to one of:
+      absent      — no such file; the client probably is not installed
+      unreadable  — file exists but is not parseable JSON
+      no-servers  — valid JSON with no `mcpServers` key at all
+      not-listed  — has `mcpServers`, but not ours
+      registered  — ours is present
+
+    Split out from the check so the parsing is unit-testable without a real
+    Claude install. A missing file is deliberately not an error: nobody is
+    expected to have every client.
+    """
+    if not path.exists():
+        return {"state": "absent"}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError, UnicodeDecodeError) as exc:
+        return {"state": "unreadable", "error": f"{type(exc).__name__}"}
+    if not isinstance(data, dict):
+        return {"state": "unreadable", "error": "top level is not an object"}
+
+    servers = data.get("mcpServers")
+    if not isinstance(servers, dict):
+        return {"state": "no-servers"}
+    entry = servers.get(SERVER_NAME)
+    if not isinstance(entry, dict):
+        return {"state": "not-listed", "others": sorted(servers)}
+
+    command = entry.get("command") or ""
+    env = entry.get("env") if isinstance(entry.get("env"), dict) else {}
+    return {
+        "state": "registered",
+        "command": command,
+        "command_exists": bool(command) and pathlib.Path(command).exists(),
+        "has_user_agent": bool(env.get("EDGAR_USER_AGENT", "").strip()),
+    }
+
+
+def check_clients() -> bool:
+    """Is the server actually registered with a client that will launch it?
+
+    Every check above this one runs in-process. They prove the package is
+    installed and the tools are importable — not that any client knows the
+    server exists. Those are different claims, and conflating them is how an
+    install reports healthy while the skill never fires.
+    """
+    wired, problems, notes = [], [], []
+
+    for label, path in client_configs():
+        info = inspect_client_config(path)
+        state = info["state"]
+        if state == "absent":
+            continue
+        if state == "unreadable":
+            problems.append(f"{label}: config is not valid JSON ({info['error']}) — "
+                            f"the client ignores the whole file until this is fixed")
+            continue
+        if state in ("no-servers", "not-listed"):
+            continue
+        wired.append(label)
+        if not info["command_exists"]:
+            problems.append(
+                f"{label}: registered, but `command` does not exist on disk "
+                f"({info['command'] or 'empty'})"
+            )
+        if not info["has_user_agent"]:
+            problems.append(
+                f"{label}: registered, but no EDGAR_USER_AGENT in its `env` block — "
+                f"a GUI-launched client inherits nothing from your shell, so SEC will 403"
+            )
+
+    skill_installed = SKILL_DIR.exists()
+
+    if not wired:
+        # A config that exists but cannot be parsed is a different diagnosis
+        # from one that simply has no entry, and reporting the generic message
+        # would send the installer looking in the wrong place. The client
+        # ignores an unparseable file wholesale, so every other server in it is
+        # silently dead too.
+        if problems:
+            return report(
+                False,
+                "Client registration",
+                "no usable registration found",
+                fix="\n".join(problems + [
+                    "Fix the file above first — a client ignores it entirely while it is "
+                    "malformed — then add the mcpServers entry per DEPLOYMENT.md section 5.",
+                ]),
+            )
+        return report(
+            False,
+            "Client registration",
+            "no Claude client has this server registered",
+            fix="""The package is installed but nothing will ever launch it. Add an
+                   `mcpServers` entry named northbridge-diligence to whichever client you
+                   use, then restart it:
+                     Claude Code    ~/.claude.json  (top-level "mcpServers" key)
+                     Claude Desktop Settings -> Developer -> Edit Config
+                   See DEPLOYMENT.md section 5 for the exact block and the per-platform
+                   paths. If you are only running tests, this check is expected to fail.""",
+        )
+
+    # The exact shape of the Windows failure: MCP on one surface, skill on another.
+    only_desktop = wired == ["Claude Desktop"]
+    if only_desktop and skill_installed:
+        notes.append(
+            "server is registered with Claude Desktop, and the skill is in "
+            "~/.claude/skills/ which is Claude Code's directory. If the skill is not "
+            "firing, the two halves are on different surfaces — see DEPLOYMENT.md "
+            "section 5. (Where Claude Desktop reads skills from is not something this "
+            "script verifies.)"
+        )
+    if not skill_installed:
+        notes.append(
+            "the skill is not in ~/.claude/skills/company-screen — Claude Code will "
+            "not see it. Run the copy in DEPLOYMENT.md section 6."
+        )
+
+    detail = "wired: " + ", ".join(wired)
+    if problems:
+        return report(False, "Client registration", detail,
+                      fix="\n".join(problems))
+    ok = report(True, "Client registration", detail)
+    for note in notes:
+        for i, line in enumerate(_wrap(note)):
+            print(f"         {'note: ' if i == 0 else '      '}{line}")
+    return ok
+
+
+def _wrap(text: str, width: int = 74) -> list[str]:
+    words, lines, current = text.split(), [], ""
+    for word in words:
+        if len(current) + len(word) + 1 > width:
+            lines.append(current)
+            current = word
+        else:
+            current = f"{current} {word}".strip()
+    if current:
+        lines.append(current)
+    return lines
 
 
 def check_skill() -> bool:
@@ -332,6 +517,7 @@ def main() -> int:
 
     check_server()
     check_skill()
+    check_clients()
     return summarise()
 
 
@@ -342,7 +528,14 @@ def summarise() -> int:
         print(f"{len(failed)} of {len(results)} checks failed: {', '.join(failed)}")
         print("Fix the first failure and run again — later ones often follow from it.\n")
         return 1
-    print(f"All {len(results)} checks passed. The install is good.\n")
+    # Deliberately narrower than "the install is good". Every check here is
+    # local: they prove the server runs and a client references it, not that the
+    # client and the skill are on the same surface. Overclaiming here is what let
+    # a broken install look healthy.
+    print(f"All {len(results)} checks passed — server installed and registered "
+          f"with a client.")
+    print("Confirm end to end by asking your client to "
+          '"Screen Beyond Meat for the deal team".\n')
     return 0
 
 
