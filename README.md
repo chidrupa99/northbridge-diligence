@@ -172,7 +172,7 @@ A correct result has two tells:
 > [!WARNING]
 > **Figures without source markers mean the skill is not being used.** Claude answered from its own knowledge instead of calling the tools, and those numbers are not traceable to a filing. Two causes, in order of likelihood:
 >
-> 1. **Surface mismatch** — the MCP server and the skill landed on different clients. Re-read [§ Install both halves](#5-install-both-halves--on-the-same-surface) and confirm both cells of *one* row are done. `python scripts/doctor.py` check 11 reports which surfaces are wired.
+> 1. **Surface mismatch** — the MCP server and the skill landed on different clients. Installing [the plugin](#2-install-the-plugin) makes this impossible; if you registered by hand instead, check the surface matrix in the *Not using Claude Code?* section and complete both cells of *one* row. `python scripts/doctor.py` check 11 reports which surfaces are wired.
 > 2. **Skill not copied, or client not restarted** — check `~/.claude/skills/company-screen` exists and restart the client.
 
 That second tell is the whole reason attribution is structural rather than prompted: a memo either carries citations on every number or it visibly does not, and a reader can tell in one glance which one they are holding.
