@@ -16,6 +16,8 @@ input, so it looks hung when it is working correctly. The MCP client starts it.
 
 from __future__ import annotations
 
+import json
+
 # The MCP SDK renamed FastMCP to MCPServer in 2.0. Both expose the same .tool()
 # decorator and .run(), so supporting each is a two-line import rather than a
 # version pin -- and a pin would be the wrong fix: requirements.txt said
@@ -216,3 +218,142 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+# --------------------------------------------------------------------------- #
+# Resources — the reference data the tools decide against
+# --------------------------------------------------------------------------- #
+#
+# These constants shaped every number the tools return, and the only way to see
+# them was to infer them from a tool response. A model asking "why is this flagged
+# LEVERAGE" had to guess the threshold; a reader wondering which tags were tried
+# for a concept had to read the source.
+#
+# Every resource below is SERIALISED FROM THE LIVE CONSTANT — no hand-maintained
+# copy exists, because a copy is a thing that drifts and then lies confidently,
+# which is the failure mode this whole codebase is organised against. Tests assert
+# each resource equals the constant it claims to expose.
+
+_JSON = "application/json"
+
+
+def _dump(payload: dict) -> str:
+    return json.dumps(payload, indent=2, sort_keys=True)
+
+
+@mcp.resource(
+    "northbridge://reference/concept-map",
+    name="Concept map",
+    description="The 17 curated financial concepts and the ordered US-GAAP tag "
+                "ladder tried for each. Order encodes preference: the first tag "
+                "with data for a fiscal year wins, so a filer that switched tags "
+                "mid-history still yields one continuous series.",
+    mime_type=_JSON,
+)
+def concept_map_resource() -> str:
+    return _dump({
+        "concepts": ec.CONCEPT_MAP,
+        "count": len(ec.CONCEPT_MAP),
+        "note": "Filers report anywhere from ~370 to ~920 US-GAAP concepts and "
+                "only ~2% are common to all. These 17 are what a first-pass PE "
+                "screen turns on. Anything outside them is reachable via "
+                "get_financial_concept.",
+    })
+
+
+@mcp.resource(
+    "northbridge://reference/thresholds",
+    name="Screening thresholds",
+    description="The exact cut-offs the flag engine fires against, plus the "
+                "restatement policy. Returned with every screen too, so a reader "
+                "always sees the bar a flag cleared.",
+    mime_type=_JSON,
+)
+def thresholds_resource() -> str:
+    return _dump({
+        "thresholds": ec.THRESHOLDS,
+        "restatement_policy": ec.RESTATEMENT_POLICY,
+        "note": "One global set, deliberately. A 4.0x debt/EBITDA bar means "
+                "different things in software and in distribution — sector-relative "
+                "bands are a stated seam, not an oversight. Target's current ratio "
+                "of 0.94 firing LIQUIDITY is the canonical example: correct rule, "
+                "wrong sector.",
+    })
+
+
+@mcp.resource(
+    "northbridge://reference/flag-catalogue",
+    name="Flag catalogue",
+    description="All 13 flag codes with severity, what fires each, and why it "
+                "matters. `flags` on a screen is authoritative and complete — this "
+                "is the full vocabulary it draws from.",
+    mime_type=_JSON,
+)
+def flag_catalogue_resource() -> str:
+    by_severity: dict[str, list[str]] = {}
+    for code, spec in ec.FLAG_CATALOGUE.items():
+        by_severity.setdefault(spec["severity"], []).append(code)
+    return _dump({
+        "flags": ec.FLAG_CATALOGUE,
+        "count": len(ec.FLAG_CATALOGUE),
+        "by_severity": {k: sorted(v) for k, v in by_severity.items()},
+        "note": "high and medium belong in Risk signals; info belongs in Data "
+                "gaps. The model narrates these — it does not decide them, and "
+                "must neither invent a code nor suppress one.",
+    })
+
+
+@mcp.resource(
+    "northbridge://reference/disclosure-packs",
+    name="Disclosure phrase packs",
+    description="The curated full-text search phrases, each with severity and why "
+                "it matters. Phrases are calibrated against real filings rather "
+                "than guessed.",
+    mime_type=_JSON,
+)
+def disclosure_packs_resource() -> str:
+    return _dump({
+        "packs": ec.DISCLOSURE_PACKS,
+        "count": len(ec.DISCLOSURE_PACKS),
+        "note": "Tuned for recall, not precision. An over-specific phrase yields a "
+                "false 'absent', and absent is written into a memo as a finding — "
+                "the most damaging error this tool can make. Precision is recovered "
+                "by the boilerplate classification plus reading the filing.",
+        "coverage": "EDGAR full-text search indexes 2001 onward only.",
+    })
+
+
+@mcp.resource(
+    "northbridge://reference/absence-codes",
+    name="Absence codes",
+    description="Why a series can be empty. Reaching EDGAR and getting a valid "
+                "answer of 'nothing' is a success with one of these codes, not an "
+                "error.",
+    mime_type=_JSON,
+)
+def absence_codes_resource() -> str:
+    return _dump({
+        "codes": ec.ABSENCE_CODES,
+        "note": "TAG_NOT_REPORTED and TAG_DISCONTINUED are different facts and a "
+                "reader needs to tell them apart: never reported at all, versus "
+                "reported once and then abandoned. Neither is ever filled in.",
+    })
+
+
+@mcp.resource(
+    "northbridge://diagnostics/stats",
+    name="Request statistics",
+    description="HTTP requests, cache hits and retries for this server process. "
+                "Cheap observability: a screen should cost two requests, so a "
+                "rising count means the one-fetch-per-filer property regressed.",
+    mime_type=_JSON,
+)
+def stats_resource() -> str:
+    stats = dict(ec.STATS)
+    total = stats["requests"] + stats["cache_hits"]
+    return _dump({
+        "stats": stats,
+        "cache_hit_rate": round(stats["cache_hits"] / total, 3) if total else None,
+        "note": "Process-lifetime counters, reset when the server restarts. The "
+                "README advertised these and nothing exposed them until now.",
+    })

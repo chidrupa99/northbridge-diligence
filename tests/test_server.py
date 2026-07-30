@@ -12,6 +12,7 @@ actually runs, and assert the surface is what the README and the skill promise.
 from __future__ import annotations
 
 import asyncio
+import json
 
 import pytest
 
@@ -227,3 +228,104 @@ class TestToolAnnotations:
     def test_no_tool_claims_to_be_destructive(self):
         for name, tool in _tools().items():
             assert tool.annotations.destructive_hint is False, name
+
+
+# --------------------------------------------------------------------------- #
+# Resources
+#
+# The reference data that shaped every returned number was invisible: a model
+# asking "why is this LEVERAGE" had to infer the threshold from the response.
+#
+# The risk in exposing it is a hand-maintained copy that drifts from the code and
+# then lies confidently — the exact failure this codebase is organised against. So
+# every resource is serialised from the live constant, and these tests assert that
+# rather than trusting it.
+# --------------------------------------------------------------------------- #
+
+def _resources():
+    listed = server.mcp.list_resources()
+    if asyncio.iscoroutine(listed):
+        listed = asyncio.run(listed)
+    return {str(r.uri): r for r in listed}
+
+
+def _read(uri: str) -> dict:
+    body = server.mcp.read_resource(uri)
+    if asyncio.iscoroutine(body):
+        body = asyncio.run(body)
+    if isinstance(body, list):
+        body = body[0].content
+    return json.loads(str(body))
+
+
+EXPECTED_RESOURCES = {
+    "northbridge://reference/concept-map",
+    "northbridge://reference/thresholds",
+    "northbridge://reference/flag-catalogue",
+    "northbridge://reference/disclosure-packs",
+    "northbridge://reference/absence-codes",
+    "northbridge://diagnostics/stats",
+}
+
+
+def test_the_documented_resources_are_registered():
+    assert set(_resources()) == EXPECTED_RESOURCES
+
+
+def test_every_resource_declares_json_and_a_description():
+    for uri, res in _resources().items():
+        assert res.mime_type == "application/json", uri
+        assert res.description and len(res.description) > 40, uri
+        assert res.name, uri
+
+
+class TestResourcesMatchLiveConstants:
+    """A copy is a thing that drifts. These fail the moment one does."""
+
+    def test_concept_map_is_the_live_concept_map(self):
+        assert _read("northbridge://reference/concept-map")["concepts"] == ec.CONCEPT_MAP
+
+    def test_thresholds_are_the_live_thresholds(self):
+        payload = _read("northbridge://reference/thresholds")
+        assert payload["thresholds"] == ec.THRESHOLDS
+        assert payload["restatement_policy"] == ec.RESTATEMENT_POLICY
+
+    def test_flag_catalogue_is_the_live_catalogue(self):
+        assert _read("northbridge://reference/flag-catalogue")["flags"] == ec.FLAG_CATALOGUE
+
+    def test_disclosure_packs_are_the_live_packs(self):
+        assert _read("northbridge://reference/disclosure-packs")["packs"] == ec.DISCLOSURE_PACKS
+
+    def test_absence_codes_are_the_live_codes(self):
+        assert _read("northbridge://reference/absence-codes")["codes"] == ec.ABSENCE_CODES
+
+    def test_stats_resource_reflects_the_live_counters(self):
+        payload = _read("northbridge://diagnostics/stats")
+        assert set(payload["stats"]) == set(ec.STATS)
+
+
+class TestFlagCatalogueIsTheSingleSourceOfTruth:
+    """Severity is written down once, in the catalogue.
+
+    Before this, each of the 13 `add(...)` call sites carried its own severity
+    string, so a catalogue resource would have been a second copy of the same
+    fact — free to disagree with the behaviour it documented.
+    """
+
+    def test_catalogue_covers_every_code_the_engine_can_raise(self):
+        import pathlib
+        import re
+        source = (pathlib.Path(ec.__file__)).read_text()
+        raised = set(re.findall(r'add\("([A-Z_]+)"', source))
+        assert raised, "no flag call sites found — did add() get renamed?"
+        assert raised == set(ec.FLAG_CATALOGUE)
+
+    def test_every_catalogued_flag_has_severity_trigger_and_rationale(self):
+        for code, spec in ec.FLAG_CATALOGUE.items():
+            assert spec["severity"] in {"high", "medium", "info"}, code
+            assert spec["fires_when"], code
+            assert spec["why"], code
+
+    def test_the_thirteen_codes_the_docs_promise(self):
+        # DEVELOPING.md invariant 6 names exactly these.
+        assert len(ec.FLAG_CATALOGUE) == 13

@@ -1066,6 +1066,85 @@ def _months_since(period_end: Optional[str]) -> Optional[float]:
     return (_today() - end).days / 30.44
 
 
+FLAG_CATALOGUE: dict[str, dict[str, str]] = {
+    # --- high: a reason to stop and think before spending more time ---
+    "NEGATIVE_EQUITY": {
+        "severity": "high",
+        "fires_when": "Stockholders' equity is below zero.",
+        "why": "Ratios that divide by equity stop being interpretable, and it is a "
+               "capital-structure issue in its own right.",
+    },
+    "EARNINGS_QUALITY": {
+        "severity": "high",
+        "fires_when": "Net income is positive while operating income is negative.",
+        "why": "Profit is coming from outside the operating business. The gap has to "
+               "be identified before the company can be called profitable.",
+    },
+    "LIQUIDITY": {
+        "severity": "high",
+        "fires_when": "Current ratio is below the `current_ratio_low` threshold.",
+        "why": "Current liabilities exceed current assets. Structural for some "
+               "retailers, so read it against the sector before calling it distress.",
+    },
+    "LEVERAGE": {
+        "severity": "high",
+        "fires_when": "Debt/EBITDA exceeds the `debt_to_ebitda_high` threshold.",
+        "why": "Constrains what an acquirer can do with the existing capital structure.",
+    },
+    "COVERAGE": {
+        "severity": "high",
+        "fires_when": "Interest coverage is below the `interest_coverage_low` threshold.",
+        "why": "Operating earnings are thin relative to interest owed.",
+    },
+    "NEGATIVE_EBITDA": {
+        "severity": "high",
+        "fires_when": "The EBITDA proxy is negative.",
+        "why": "Any multiple built on it is meaningless, so leverage cannot be read "
+               "the usual way.",
+    },
+    # --- medium: worth a paragraph in the memo ---
+    "REVENUE_DECLINE": {
+        "severity": "medium",
+        "fires_when": "Year-over-year revenue change is below `revenue_decline_pct`.",
+        "why": "Direction matters more than level in a first-pass screen.",
+    },
+    "CASH_BURN": {
+        "severity": "medium",
+        "fires_when": "Operating cash flow is negative in the reference year.",
+        "why": "The business consumed cash rather than generating it.",
+    },
+    "STALE_DATA": {
+        "severity": "medium",
+        "fires_when": "The latest annual period end is older than `stale_data_months`.",
+        "why": "The screen may predate a material change; check for a recent filing.",
+    },
+    # --- info: data-quality caveats, not findings about the business ---
+    "MISSING_DATA": {
+        "severity": "info",
+        "fires_when": "One or more curated line items are not tagged by this filer.",
+        "why": "Named rather than estimated. See `absent_line_items` for which and why.",
+    },
+    "TAG_DISCONTINUED": {
+        "severity": "info",
+        "fires_when": "A filer stopped tagging a concept before the reference year.",
+        "why": "Excluded rather than carried forward, which would pair a stale "
+               "numerator with a current denominator.",
+    },
+    "MIXED_TAG_BASIS": {
+        "severity": "info",
+        "fires_when": "A series was assembled across more than one US-GAAP tag.",
+        "why": "Usually comparable, but ASC 606 sometimes changed the number and not "
+               "just the label, so a long trend deserves a spot-check.",
+    },
+    "RESTATED": {
+        "severity": "info",
+        "fires_when": "A period's value differs from what an earlier filing reported.",
+        "why": "The figure shown is as-last-reported; the change is auditable rather "
+               "than invisible.",
+    },
+}
+
+
 def _detect_flags(metrics: dict, vals: dict, svs: dict,
                   latest_period_end: Optional[str],
                   mixed: list[str], restated: list[str],
@@ -1080,9 +1159,13 @@ def _detect_flags(metrics: dict, vals: dict, svs: dict,
     flags: list[dict] = []
 
     def add(code, severity, message, evidence=()):
+        # Severity comes from FLAG_CATALOGUE, not from the call site, so the
+        # catalogue exposed as an MCP resource cannot drift from the behaviour --
+        # there is exactly one place a severity is written down. An unknown code
+        # raises KeyError, which is correct: it is a programming error.
         flags.append({
             "code": code,
-            "severity": severity,
+            "severity": FLAG_CATALOGUE[code]["severity"],
             "message": message,
             "evidence": [sv.to_dict() for sv in evidence if sv],
         })
