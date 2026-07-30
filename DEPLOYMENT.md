@@ -67,6 +67,12 @@ confusing dependency failure two steps later. If `python3` is older than 3.10,
 find a newer one (`ls /usr/local/bin/python3.*`, or `brew install python@3.12`)
 and use that name in the `venv` line.
 
+> **Upgrading an existing install?** Quit the Claude client before running
+> `pip install -e .` again. On Windows the running client holds `edgar-mcp.exe`
+> open, pip uninstalls the old package *before* it discovers it cannot write the
+> new one, and you are left with no working install. macOS and Linux tolerate the
+> replacement, but quitting first is the safe habit on any platform.
+
 `python3 -m venv .venv` creates a **virtual environment** — a private Python installation inside the project folder, so the four libraries this tool needs (`mcp`, `requests`, `beautifulsoup4`, `lxml`) do not touch the system Python other tools may depend on. `source .venv/bin/activate` switches the current terminal to use it. `pip install -e .` reads `pyproject.toml`, installs those dependencies, and puts this project's own `edgar-mcp` command on the venv's PATH.
 
 ### 3. Set the SEC contact header
@@ -128,6 +134,13 @@ This one is not a shell command. It edits a **JSON configuration file** on disk 
 - **Claude Code (project scope) — `.mcp.json`** beside the code. Binds the server to that one folder, which is usually not what a per-user install wants.
 - **Claude Desktop (macOS):** `~/Library/Application Support/Claude/claude_desktop_config.json` — easiest opened from Claude Desktop → Settings → Developer → Edit Config.
 - **Claude Desktop (Windows):** `%APPDATA%\Claude\claude_desktop_config.json` — same route through Settings → Developer.
+
+> **Quit the client before editing.** Claude Desktop keeps this file in memory and
+> writes its own `preferences` back over it while running, so an edit made to a
+> live config gets silently clobbered — an added `mcpServers` key was observed
+> disappearing within two minutes. Quit the app fully, edit, save, then reopen.
+> This is separate from the restart needed *after* editing: quit before, reopen
+> after.
 
 **Add — do not replace.** That file may already have content: `preferences`, `mcpServers` for other tools, `coworkUserFilesPath`. Overwriting it wipes what is already there. If `mcpServers` does not exist yet, add the whole key as a sibling of anything already present. If it does, add `northbridge-diligence` inside it alongside the other servers.
 
@@ -208,4 +221,5 @@ If the analyst names an ambiguous company — "Delta", "American" — the skill 
 | Skill never triggers, answers come without citations | `skill/` not copied to the right directory for your surface, the directory creation was skipped so the copy failed, or the client was not restarted |
 | `claude: command not found` when trying `claude mcp add` | The standalone CLI is not installed. Use the `~/.claude.json` user-scope route in step 5 instead |
 | `pip install -e .` fails with a metadata or build error | pip older than 21.3 — run `python -m pip install --upgrade pip` inside the venv first |
+| **Windows: reinstall fails with `WinError 32`, file in use** | The Claude client is running and holding `edgar-mcp.exe` open. **Quit the client first.** pip uninstalls before it fails, so a blocked reinstall leaves no working package and sometimes a stray `~orthbridge-diligence` directory in `site-packages` — delete that, then reinstall with the client closed |
 

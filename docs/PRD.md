@@ -114,7 +114,7 @@ flowchart TB
   end
 
   subgraph ADAPT["3 · Swappable adapter — edgar_client.py"]
-    ADP["fetch · parse · normalize · attach a SOURCE to every value<br/>compute ratios · judge meaningfulness · raise risk flags<br/>67 offline tests + golden-set regression pin this behaviour"]
+    ADP["fetch · parse · normalize · attach a SOURCE to every value<br/>compute ratios · judge meaningfulness · raise risk flags<br/>80 offline tests + golden-set regression pin this behaviour"]
   end
 
   subgraph SOURCES["4 · Data source — the ONLY layer that changes on a live deal"]
@@ -170,7 +170,7 @@ XBRL is messier than its reputation. Four realities are handled in code, each pi
 
 ### 7.3 How the behaviour is held in place
 
-67 tests run the real client against **recorded** EDGAR responses — Beyond Meat for distress, Target for calendar and tag chaos — in under a second with no network. Recorded rather than hand-mocked, because hand-written mocks never invent a January-FYE retailer that abandons `GrossProfit`; real filings do, and those are the cases that break screens.
+80 tests run the real client against **recorded** EDGAR responses — Beyond Meat for distress, Target for calendar and tag chaos — in under a second with no network. Recorded rather than hand-mocked, because hand-written mocks never invent a January-FYE retailer that abandons `GrossProfit`; real filings do, and those are the cases that break screens.
 
 On top sits a golden-set regression over the entire screen output. When it fails it names the field — `flags lost: ['LIQUIDITY']` — instead of dumping a 200-line dict. It was verified to bite by deliberately moving a threshold and confirming it caught the lost flag.
 
@@ -200,7 +200,7 @@ One screen, deal-lead-readable in ~2 minutes:
 
 ## 10. Scope, phasing & roadmap
 
-**v1 (built).** The eight tools; the code-side ratio, meaningfulness and flag engine; the skill; the memo (Markdown + HTML); structural attribution; error handling and retries; a two-call-per-screen data path; 67 offline tests plus a golden-set regression; README; one live sample (Beyond Meat — demonstrates catching a one-time-gain "profit mirage").
+**v1 (built).** The eight tools; the code-side ratio, meaningfulness and flag engine; the skill; the memo (Markdown + HTML); structural attribution; error handling and retries; a two-call-per-screen data path; 80 offline tests plus a golden-set regression; README; one live sample (Beyond Meat — demonstrates catching a one-time-gain "profit mirage").
 
 **v2 (next — priority order):**
 1. **Comps tool** — auto-assemble a peer set (SIC + size band, human-overridable) with side-by-side metrics. Highest-leverage add for a PE screen, and the prerequisite for industry-relative thresholds.

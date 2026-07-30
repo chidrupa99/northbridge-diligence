@@ -13,7 +13,7 @@ Trust is enforced structurally, not by asking the model nicely. Three things are
 
 1. **Every figure carries its filing** — accession number, form type, period end, XBRL tag, and a resolvable EDGAR URL.
 2. **The code computes; the model narrates.** Ratios, the judgment of whether a ratio is *meaningful*, and the risk flags are all produced in Python against fixed thresholds. The skill is forbidden from doing arithmetic or inventing a flag.
-3. **The behaviour is pinned by tests** — 67 offline tests plus a golden-set regression, so a tag-mapping tweak that would silently change a margin fails the build instead.
+3. **The behaviour is pinned by tests** — 80 offline tests plus a golden-set regression, so a tag-mapping tweak that would silently change a margin fails the build instead.
 
 ---
 
@@ -70,6 +70,11 @@ export EDGAR_USER_AGENT="Your Org you@example.com"    # Windows: set EDGAR_USER_
 python scripts/doctor.py
 ```
 
+> [!NOTE]
+> **Reinstalling later?** Quit the Claude client first. On Windows it holds
+> `edgar-mcp.exe` open, and pip uninstalls before failing — leaving no working
+> install.
+
 Step 0 matters: `doctor.py` deliberately runs on **any** Python version, so a too-old interpreter is reported in its first line rather than as a confusing dependency error three steps later. If `python3` on your machine is older than 3.10, look for a newer one (`ls /usr/local/bin/python3.*`, or `brew install python@3.12`) and use that name in step 1.
 
 `export` sets an **environment variable** — a value the terminal remembers for this session and hands to any program launched from it. SEC returns HTTP 403 to unidentified clients, so `doctor.py` needs it. **Your Claude client does not inherit it.** A GUI-launched app gets nothing from your shell, and each client spawns its own copy of the server, so the same value has to be repeated in the client config in step 5.
@@ -89,6 +94,12 @@ Step 0 matters: `doctor.py` deliberately runs on **any** Python version, so a to
 > **"Claude Desktop" is two surfaces, and this is what most installs get wrong.** Per the [Claude Code skills docs](https://code.claude.com/docs/en/skills): *"Cowork sessions and cloud sessions… don't read `~/.claude/skills/` on your machine. Both interactive and scheduled Cowork sessions load the skills enabled for your claude.ai account."* A Claude Code session in the Desktop app **does** read the local directory; a Cowork chat session in the same app does **not**. Desktop scheduled tasks run locally and behave like any local session.
 >
 > The claude.ai row is the trap worth knowing: you can enable the skill for your account there and it will trigger, but the MCP server is not reachable, so it has no data. The skill's "no figure without a citation" rule should make that fail visibly rather than invent numbers — but you will see a skill that looks installed and produces nothing.
+
+> [!CAUTION]
+> **Quit the Claude client before editing its config.** Claude Desktop holds the
+> config in memory and flushes its own `preferences` back over the file while
+> running. An `mcpServers` key added to a live config was observed vanishing
+> within two minutes. Quit the app fully, edit, save, then reopen.
 
 The MCP server block, in whichever config your row names. **Add** it to what is already in that file rather than replacing the file — on a fresh install the `mcpServers` key is often absent entirely and has to be created alongside the existing keys:
 
@@ -270,7 +281,7 @@ These are the cases that separate a working screen from a demo. Each is covered 
 
 ## Tests
 
-67 offline tests plus a golden-set regression, in about a second. Three things about them are deliberate:
+80 offline tests plus a golden-set regression, in about a second. Three things about them are deliberate:
 
 **Recorded fixtures, not hand-written mocks.** Real EDGAR responses for two filers chosen for what they break. Beyond Meat gives negative equity, negative EBITDA and positive net income on a loss-making operating business; Target gives a January fiscal year end, a mid-history tag switch, and an abandoned `GrossProfit`. Hand-written mocks never invent a January-FYE retailer that stops tagging gross profit — real filings do, which is the point.
 
