@@ -1,0 +1,11 @@
+{
+  "name": "northbridge-diligence-marketplace",
+  "owner": { "name": "Chidrupa Mamunooru" },
+  "plugins": [
+    {
+      "name": "northbridge-diligence",
+      "source": "./plugin",
+      "description": "SEC EDGAR screening tools plus the company-screen skill, bundled so the two halves install together."
+    }
+  ]
+}

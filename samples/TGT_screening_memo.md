@@ -66,10 +66,10 @@ This is the clearest illustration of a stated limitation of the tool: **threshol
 
 **Disclosure signals** *(full-text search across all Target filings since 2001; the boilerplate-vs-signal verdict is computed against the 11 annual reports on file).*
 
-- **Going-concern language: absent.** *"Substantial doubt"* appears in **no** Target filing [S5]. Expected here, and confirmed rather than assumed.
-- **Customer concentration: absent** [S5]. Expected for a retailer with no single material customer.
-- **Material weakness: boilerplate.** Present in all 11 annual reports, which is the signature of the auditor's standard description of its own testing method — not a reported control failure [S5]. **Not a finding.**
-- **Goodwill impairment: boilerplate.** Present in all 11 annual reports [S5]. Standing accounting-policy language, not an event.
+- **Going-concern language: absent.** *"Substantial doubt"* appears in **no** Target filing [S4]. Expected here, and confirmed rather than assumed.
+- **Customer concentration: absent** [S4]. Expected for a retailer with no single material customer.
+- **Material weakness: boilerplate.** Present in all 11 annual reports, which is the signature of the auditor's standard description of its own testing method — not a reported control failure [S4]. **Not a finding.**
+- **Goodwill impairment: boilerplate.** Present in all 11 annual reports [S4]. Standing accounting-policy language, not an event.
 
 ## Data gaps & caveats
 
@@ -88,7 +88,6 @@ This is the clearest illustration of a stated limitation of the tool: **threshol
 | S1 | 10-K (FY2025, period ended 2026-01-31) | 2026-03-11 | 0000027419-26-000016 | FY2023–FY2025 figures, flags | [link](https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/tgt-20260131.htm) |
 | S2 | 10-K (FY2024 report) | 2025-03-12 | 0000027419-25-000018 | FY2022 figures | [link](https://www.sec.gov/Archives/edgar/data/27419/000002741925000018/0000027419-25-000018-index.htm) |
 | S3 | 10-K (FY2023 report) | 2024-03-13 | 0000027419-24-000032 | FY2021 figures (CAGR base) | [link](https://www.sec.gov/Archives/edgar/data/27419/000002741924000032/0000027419-24-000032-index.htm) |
-| S4 | 10-Q (period ended 2026-05-02) | 2026-05-29 | 0000027419-26-000022 | Latest interim | [link](https://www.sec.gov/Archives/edgar/data/27419/000002741926000022/tgt-20260502.htm) |
-| S5 | EDGAR full-text search (all Target filings, 2001–present) | — | — | Disclosure-signal presence / absence | [link](https://efts.sec.gov/LATEST/search-index?q=%22substantial+doubt%22&ciks=0000027419) |
+| S4 | EDGAR full-text search (all Target filings, 2001–present) | — | — | Disclosure-signal presence / absence | [link](https://efts.sec.gov/LATEST/search-index?q=%22substantial+doubt%22&ciks=0000027419) |
 
 *Assembled following the `company-screen` skill's memo template from data returned by the MCP server's tool functions — the same functions a Claude client would invoke through the server. All figures pulled live from SEC EDGAR. Ratios, meaningfulness verdicts and risk flags are computed in Python — re-running the screen returns identical flags.*

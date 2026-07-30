@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "northbridge-diligence": {
+      "command": "${CLAUDE_PLUGIN_ROOT}/../.venv/bin/edgar-mcp",
+      "env": {
+        "EDGAR_USER_AGENT": "${EDGAR_USER_AGENT}"
+      }
+    }
+  }
+}

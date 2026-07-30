@@ -56,6 +56,14 @@ HOSTS = {
 SERVER_NAME = "northbridge-diligence"
 SKILL_DIR = pathlib.Path.home() / ".claude" / "skills" / "company-screen"
 
+# A plugin install is the other valid shape, and the better one: it bundles the
+# skill and the MCP server config together, so they cannot land on different
+# surfaces. doctor.py has to recognise it, or it would report a correct install
+# as broken.
+PLUGIN_MANIFEST = ROOT / "plugin" / ".claude-plugin" / "plugin.json"
+PLUGIN_MCP = ROOT / "plugin" / ".mcp.json"
+PLUGIN_SKILL = ROOT / "plugin" / "skills" / "company-screen" / "SKILL.md"
+
 
 def _desktop_config() -> pathlib.Path:
     """Claude Desktop's config path for this platform."""
@@ -80,6 +88,7 @@ def client_configs() -> list[tuple[str, pathlib.Path]]:
     return [
         ("Claude Code (user scope)", pathlib.Path.home() / ".claude.json"),
         ("Claude Code (project scope)", ROOT / ".mcp.json"),
+        ("Plugin (bundled)", PLUGIN_MCP),
         ("Claude Desktop", _desktop_config()),
     ]
 
@@ -314,6 +323,20 @@ def check_server() -> bool:
     )
 
 
+def _resolve_placeholders(command: str) -> str:
+    """Expand the substitutions a Claude client makes at launch.
+
+    `${CLAUDE_PLUGIN_ROOT}` is resolved by the client, not by us, so a bundled
+    plugin config contains it literally on disk. Checking the raw string for
+    existence would report a perfectly good plugin install as a broken path.
+    """
+    if not command:
+        return command
+    resolved = command.replace("${CLAUDE_PLUGIN_ROOT}", str(ROOT / "plugin"))
+    resolved = resolved.replace("${CLAUDE_PROJECT_DIR}", str(ROOT))
+    return os.path.normpath(os.path.expanduser(resolved))
+
+
 def inspect_client_config(path: pathlib.Path) -> dict:
     """Read one client config and describe how this server is registered in it.
 
@@ -346,11 +369,20 @@ def inspect_client_config(path: pathlib.Path) -> dict:
 
     command = entry.get("command") or ""
     env = entry.get("env") if isinstance(entry.get("env"), dict) else {}
+    resolved = _resolve_placeholders(command)
     return {
         "state": "registered",
         "command": command,
-        "command_exists": bool(command) and pathlib.Path(command).exists(),
+        "resolved_command": resolved,
+        # An unresolved placeholder is not a broken path -- the client substitutes
+        # it at launch and we cannot. Checking existence against the raw string
+        # would report a correct plugin config as broken.
+        "command_exists": bool(resolved) and pathlib.Path(resolved).exists(),
         "has_user_agent": bool(env.get("EDGAR_USER_AGENT", "").strip()),
+        # A pass-through like ${EDGAR_USER_AGENT} only works if the value is set
+        # where the CLIENT can see it -- a GUI app inherits nothing from a shell.
+        "user_agent_is_passthrough": env.get("EDGAR_USER_AGENT", "").strip()
+                                        .startswith("${"),
     }
 
 
@@ -385,6 +417,13 @@ def check_clients() -> bool:
             problems.append(
                 f"{label}: registered, but no EDGAR_USER_AGENT in its `env` block — "
                 f"a GUI-launched client inherits nothing from your shell, so SEC will 403"
+            )
+        elif info.get("user_agent_is_passthrough") and not os.environ.get("EDGAR_USER_AGENT"):
+            problems.append(
+                f"{label}: `env` passes EDGAR_USER_AGENT through from the environment, "
+                f"but it is not set here. Set it in your shell profile so a "
+                f"GUI-launched client sees it, or replace the placeholder with the "
+                f"literal contact string."
             )
 
     skill_installed = SKILL_DIR.exists()
@@ -433,10 +472,19 @@ def check_clients() -> bool:
             "A Claude Code session inside the Desktop app does read the local "
             "directory. See DEPLOYMENT.md section 5."
         )
-    if not skill_installed:
+    plugin_bundles_skill = PLUGIN_SKILL.exists()
+    if not skill_installed and not plugin_bundles_skill:
         notes.append(
-            "the skill is not in ~/.claude/skills/company-screen — Claude Code will "
-            "not see it. Run the copy in DEPLOYMENT.md section 6."
+            "the skill is in neither ~/.claude/skills/company-screen nor the plugin, "
+            "so no surface can load it. Either `/plugin install "
+            "northbridge-diligence` or run the copy in DEPLOYMENT.md section 6."
+        )
+    elif not skill_installed and "Plugin (bundled)" in wired:
+        notes.append(
+            "the skill ships with the plugin rather than sitting in "
+            "~/.claude/skills/, which is the point of the plugin — both halves "
+            "install together and cannot end up on different surfaces. Confirm with "
+            "/plugin, and no hand-copy is needed."
         )
 
     detail = "wired: " + ", ".join(wired)
@@ -485,12 +533,21 @@ def check_skill() -> bool:
             False, "Skill", f"name {len(name)}/64, description {len(description)}/1024",
             fix="Over the limit means the skill silently fails to load. Shorten it.",
         )
-    installed = pathlib.Path.home() / ".claude" / "skills" / "company-screen"
+    installed = SKILL_DIR
     # Present on disk is not the same as visible to the surface in use: Cowork
     # sessions load skills from the claude.ai account, not from this directory.
-    where = "also in ~/.claude/skills/ (read by Claude Code)" if installed.exists() else \
-            "not yet copied to ~/.claude/skills/ — run: " \
-            "mkdir -p ~/.claude/skills && cp -r skill ~/.claude/skills/company-screen"
+    # Two valid shapes: hand-copied into ~/.claude/skills/, or bundled in the
+    # plugin. Reporting the second as missing would flag a correct install.
+    if PLUGIN_SKILL.exists():
+        where = "bundled in ./plugin (install with /plugin install northbridge-diligence)"
+        if installed.exists():
+            where += "; also hand-copied to ~/.claude/skills/"
+    elif installed.exists():
+        where = "in ~/.claude/skills/ (read by Claude Code)"
+    else:
+        where = ("not installed — either `/plugin install northbridge-diligence`, "
+                 "or copy it: mkdir -p ~/.claude/skills && "
+                 "cp -r skill ~/.claude/skills/company-screen")
     return report(True, "Skill", f"{name}, frontmatter valid — {where}")
 
 

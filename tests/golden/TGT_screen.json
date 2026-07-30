@@ -1,5 +1,34 @@
 {
  "financials": {
+  "absence_note": "3 of 17 line items are empty. Each is explained in `absent_line_items` with the tags tried and why nothing was usable. These are gaps in the filer's XBRL, not fetch failures \u2014 report them as gaps and do not estimate around them.",
+  "absent_line_items": {
+   "current_debt": {
+    "code": "TAG_DISCONTINUED",
+    "last_reported_fiscal_year": 2019,
+    "note": "Last reported for fiscal 2019; the screen is anchored to 2025. Excluded rather than carried forward.",
+    "tags_tried": [
+     "LongTermDebtCurrent",
+     "DebtCurrent",
+     "ShortTermBorrowings"
+    ]
+   },
+   "gross_profit": {
+    "code": "TAG_DISCONTINUED",
+    "last_reported_fiscal_year": 2017,
+    "note": "Last reported for fiscal 2017; the screen is anchored to 2025. Excluded rather than carried forward.",
+    "tags_tried": [
+     "GrossProfit"
+    ]
+   },
+   "total_liabilities": {
+    "code": "TAG_NOT_REPORTED",
+    "last_reported_fiscal_year": null,
+    "note": "The filer has never reported any of the candidate tags.",
+    "tags_tried": [
+     "Liabilities"
+    ]
+   }
+  },
   "company": {
    "cik": 27419,
    "cik10": "0000027419",

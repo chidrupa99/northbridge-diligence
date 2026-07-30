@@ -1,0 +1,15 @@
+{
+  "name": "northbridge-diligence",
+  "version": "1.0.0",
+  "description": "SEC EDGAR screening for a PE deal team. Bundles the edgar-mcp server and the company-screen skill as one unit, so the two halves cannot be installed onto different surfaces.",
+  "author": {
+    "name": "Chidrupa Mamunooru"
+  },
+  "keywords": [
+    "sec",
+    "edgar",
+    "xbrl",
+    "private-equity",
+    "diligence"
+  ]
+}

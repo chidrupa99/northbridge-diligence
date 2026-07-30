@@ -171,3 +171,60 @@ class TestCheckClients:
         assert "not valid JSON" in out
         # Must not be misdiagnosed as "simply not registered".
         assert "no Claude client has this server registered" not in out
+
+
+class TestPluginScaffold:
+    """The plugin exists to make the surface-mismatch failure impossible.
+
+    Installed by hand, the MCP server and the skill go to different places and
+    which places depends on the client — so one can land on Claude Desktop while
+    the other sits in Claude Code's directory, every check green, nothing working.
+    A plugin bundles both, so there is no way to install half of it.
+    """
+
+    ROOT = pathlib.Path(__file__).resolve().parents[1]
+
+    def test_manifest_exists_and_is_valid_json(self):
+        manifest = self.ROOT / "plugin" / ".claude-plugin" / "plugin.json"
+        assert manifest.exists()
+        data = json.loads(manifest.read_text())
+        assert data["name"] == "northbridge-diligence"
+
+    def test_manifest_avoids_fields_the_pinned_cli_rejects(self):
+        """Claude Code 2.1.91 errors on $schema and displayName.
+
+        The docs say unrecognised fields are warnings, and displayName needs
+        2.1.143+. On the version actually installed here both are hard errors, so
+        they are omitted deliberately — a plugin that fails validation on the
+        reviewer's CLI is worse than one without a prettier picker label.
+        """
+        data = json.loads((self.ROOT / "plugin" / ".claude-plugin" / "plugin.json").read_text())
+        assert "displayName" not in data
+        assert "$schema" not in data
+
+    def test_components_live_at_the_plugin_root_not_inside_claude_plugin(self):
+        # The documented failure mode: components inside .claude-plugin/ are not
+        # discovered. Only the manifest belongs there.
+        assert (self.ROOT / "plugin" / "skills" / "company-screen" / "SKILL.md").exists()
+        assert not (self.ROOT / "plugin" / ".claude-plugin" / "skills").exists()
+
+    def test_bundled_mcp_config_uses_the_plugin_root_variable(self):
+        # Absolute paths would break on any machine but the author's.
+        cfg = json.loads((self.ROOT / "plugin" / ".mcp.json").read_text())
+        command = cfg["mcpServers"]["northbridge-diligence"]["command"]
+        assert "${CLAUDE_PLUGIN_ROOT}" in command
+
+    def test_bundled_skill_is_identical_to_the_canonical_one(self):
+        """Two copies of a skill is two things that drift.
+
+        If the plugin's copy is edited and skill/ is not, a plugin user and a
+        hand-install user get different behaviour from the same repo.
+        """
+        canonical = (self.ROOT / "skill" / "SKILL.md").read_text()
+        bundled = (self.ROOT / "plugin" / "skills" / "company-screen" / "SKILL.md").read_text()
+        assert bundled == canonical, "plugin skill has drifted from skill/SKILL.md"
+
+    def test_marketplace_entry_points_at_the_plugin(self):
+        market = json.loads((self.ROOT / ".claude-plugin" / "marketplace.json").read_text())
+        entry = next(p for p in market["plugins"] if p["name"] == "northbridge-diligence")
+        assert entry["source"] == "./plugin"

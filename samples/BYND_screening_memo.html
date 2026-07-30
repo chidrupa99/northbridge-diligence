@@ -47,6 +47,53 @@
   .ref{color:var(--accent);font-size:11px;font-weight:600;vertical-align:super}
   .foot{margin-top:24px;padding-top:12px;border-top:1px solid var(--line);color:var(--muted);font-size:11.5px}
   code{background:var(--chip);padding:1px 5px;border-radius:4px;font-size:12px}
+
+  /* --- Dark mode -------------------------------------------------------- */
+  /* Only the custom properties are redefined; every rule below already reads
+     from them, so the whole document follows without duplicating selectors. */
+  @media (prefers-color-scheme: dark) {
+    :root{
+      --ink:#e6e9ef; --muted:#9aa4b2; --line:#2a3140; --bg:#0e1117; --panel:#161a22;
+      --navy:#8fb3e6; --accent:#6f9bf0; --bad:#f0776a; --warn:#e0a458; --ok:#4bcf98;
+      --chip:#1d2431;
+    }
+    /* The flag tints are literal hex in the light theme, so they need their own
+       dark values or red-on-dark becomes unreadable. */
+    .flag.red{background:#2a1614;border-color:#4a2420}
+    .flag.amber{background:#2a2114;border-color:#4a3a1e}
+    .flag.grey{background:#1b202a;border-color:#2c3340}
+    .snap{background:#141922}
+    .kpi{background:#161a22}
+    a{color:var(--accent)}
+  }
+
+  /* --- Print / PDF ------------------------------------------------------ */
+  /* A deal lead prints this or saves it as a PDF. Untreated, the browser
+     default clips wide tables, breaks flag blocks across pages, and drops the
+     source URLs — which for a document whose entire argument is traceability is
+     the one thing that must survive. */
+  @media print {
+    @page { margin: 14mm 12mm; }
+    body{background:#fff;color:#000;font-size:10.5pt}
+    .page{max-width:none;margin:0;border:0;border-radius:0;padding:0;box-shadow:none}
+
+    /* Never split an atomic block across a page boundary. */
+    table, .flag, .kpi, .snap, .note{break-inside:avoid;page-break-inside:avoid}
+    h2{break-after:avoid;page-break-after:avoid}
+    tr{break-inside:avoid;page-break-inside:avoid}
+    thead{display:table-header-group}   /* repeat headers on continued tables */
+
+    /* Tables must fit the page rather than scroll off it. */
+    table{width:100%;table-layout:auto;font-size:9pt}
+    .kpis{grid-template-columns:repeat(3,1fr)}
+
+    /* Preserve attribution: a printed citation with no URL is not a citation. */
+    a{color:#000;text-decoration:underline}
+    .src a[href]::after{content:" (" attr(href) ")";font-size:8pt;word-break:break-all}
+
+    /* Screen-only chrome. */
+    .badge{border:1px solid #000;color:#000;background:none}
+  }
 </style>
 </head>
 <body>
@@ -142,7 +189,7 @@
   <div class="flag grey"><span class="sev i">Info</span><div><span class="code">MIXED_TAG_BASIS</span> — the <code>cash</code> and <code>interest_expense</code> series are stitched across more than one US-GAAP tag; the filer changed its tagging mid-history. Worth a spot-check. <span class="ref">[S1]</span></div></div>
   <ul>
     <li><code>total_liabilities</code> is not populated — the filer does not tag the <code>Liabilities</code> concept in this window. Reported as absent, never estimated.</li>
-    <li>Sources point at the filing each figure was <i>actually read from</i>, under an <code>as_last_reported</code> restatement policy: FY2023–FY2025 from the FY2025 10-K, FY2022 from the FY2024 10-K, FY2021 from the FY2023 10-K (prior-year comparatives).</li>
+    <li>Sources point at the filing each figure was <i>actually read from</i>, under an <code>as_last_reported</code> restatement policy: FY2023–FY2025 from the FY2025 10-K<span class="ref">[S1]</span>, FY2022 from the FY2024 10-K<span class="ref">[S2]</span>, FY2021 from the FY2023 10-K<span class="ref">[S3]</span> (prior-year comparatives).</li>
     <li>All figures are annual (10-K) US-GAAP XBRL as filed. No restatements detected in this window.</li>
     <li><b>Covenant compliance was not checked.</b> No exact search phrase proved reliable enough to ship — candidates returned zero hits even against genuinely distressed filers — so this is a stated gap, not a silent "absent". With ~$416M of debt and no equity cushion, read the covenant terms from the debt footnote manually.</li>
     <li>Full-text search reaches back to 2001 only. "Absent" means the phrase has not appeared since then, not that it never did.</li>

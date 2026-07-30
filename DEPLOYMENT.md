@@ -67,6 +67,12 @@ confusing dependency failure two steps later. If `python3` is older than 3.10,
 find a newer one (`ls /usr/local/bin/python3.*`, or `brew install python@3.12`)
 and use that name in the `venv` line.
 
+> **Upgrading an existing install?** Quit the Claude client before running
+> `pip install -e .` again. On Windows the running client holds `edgar-mcp.exe`
+> open, pip uninstalls the old package *before* it discovers it cannot write the
+> new one, and you are left with no working install. macOS and Linux tolerate the
+> replacement, but quitting first is the safe habit on any platform.
+
 `python3 -m venv .venv` creates a **virtual environment** — a private Python installation inside the project folder, so the four libraries this tool needs (`mcp`, `requests`, `beautifulsoup4`, `lxml`) do not touch the system Python other tools may depend on. `source .venv/bin/activate` switches the current terminal to use it. `pip install -e .` reads `pyproject.toml`, installs those dependencies, and puts this project's own `edgar-mcp` command on the venv's PATH.
 
 ### 3. Set the SEC contact header
@@ -128,6 +134,46 @@ This one is not a shell command. It edits a **JSON configuration file** on disk 
 - **Claude Code (project scope) — `.mcp.json`** beside the code. Binds the server to that one folder, which is usually not what a per-user install wants.
 - **Claude Desktop (macOS):** `~/Library/Application Support/Claude/claude_desktop_config.json` — easiest opened from Claude Desktop → Settings → Developer → Edit Config.
 - **Claude Desktop (Windows):** `%APPDATA%\Claude\claude_desktop_config.json` — same route through Settings → Developer.
+
+> **Quit the client before editing.** Claude Desktop keeps this file in memory and
+> writes its own `preferences` back over it while running, so an edit made to a
+> live config gets silently clobbered — an added `mcpServers` key was observed
+> disappearing within two minutes. Quit the app fully, edit, save, then reopen.
+> This is separate from the restart needed *after* editing: quit before, reopen
+> after.
+
+### Recommended: install as a plugin
+
+The matrix above exists because the tool has two halves that go to different
+places, and getting them onto different surfaces is the most common install
+failure. A plugin removes the possibility rather than warning about it — the
+skill and the MCP server config ship as one unit, so **there is no way to install
+half of it.**
+
+```bash
+/plugin marketplace add /absolute/path/to/northbridge-diligence
+/plugin install northbridge-diligence
+```
+
+That is the whole install. `doctor.py` recognises it and reports
+`wired: Plugin (bundled)`.
+
+Two things it does not fix, stated plainly:
+
+- **The bundled `.mcp.json` hardcodes a POSIX venv path**
+  (`${CLAUDE_PLUGIN_ROOT}/../.venv/bin/edgar-mcp`), correct when the plugin sits
+  inside the cloned repo. On Windows change it to `../.venv/Scripts/edgar-mcp.exe`.
+  A single config cannot cover both platforms — there is no conditional syntax and
+  the interpreter path differs.
+- **`EDGAR_USER_AGENT` is passed through from the environment**, so it has to be
+  set somewhere a GUI-launched client can see — a shell profile, not just the
+  terminal you installed from. Or replace the placeholder with the literal string.
+
+Validated against Claude Code **2.1.91**. The manifest deliberately omits
+`displayName` and `$schema`: both are documented fields, and both are hard errors
+on that version. See [`plugin/README.md`](plugin/README.md).
+
+The hand-install path below still works and is still supported.
 
 **Add — do not replace.** That file may already have content: `preferences`, `mcpServers` for other tools, `coworkUserFilesPath`. Overwriting it wipes what is already there. If `mcpServers` does not exist yet, add the whole key as a sibling of anything already present. If it does, add `northbridge-diligence` inside it alongside the other servers.
 
@@ -208,4 +254,5 @@ If the analyst names an ambiguous company — "Delta", "American" — the skill 
 | Skill never triggers, answers come without citations | `skill/` not copied to the right directory for your surface, the directory creation was skipped so the copy failed, or the client was not restarted |
 | `claude: command not found` when trying `claude mcp add` | The standalone CLI is not installed. Use the `~/.claude.json` user-scope route in step 5 instead |
 | `pip install -e .` fails with a metadata or build error | pip older than 21.3 — run `python -m pip install --upgrade pip` inside the venv first |
+| **Windows: reinstall fails with `WinError 32`, file in use** | The Claude client is running and holding `edgar-mcp.exe` open. **Quit the client first.** pip uninstalls before it fails, so a blocked reinstall leaves no working package and sometimes a stray `~orthbridge-diligence` directory in `site-packages` — delete that, then reinstall with the client closed |
 

@@ -88,7 +88,113 @@ STATS = {"requests": 0, "cache_hits": 0, "retries": 0}
 
 
 class EdgarError(Exception):
-    """Raised for expected, user-facing failures (bad ticker, no data, etc.)."""
+    """Base class for expected, user-facing failures.
+
+    Every error carries a machine-readable taxonomy, because a model deciding
+    what to do next needs more than prose. The distinction that matters most:
+
+      * ``recoverable`` — "the model can continue its turn". True for anything a
+        model can narrate around, which is nearly everything: a bad ticker means
+        ask the user, a data gap means report the gap. False only for genuine
+        internal faults, where continuing would mean inventing something.
+      * ``retryable`` — "issuing this exact call again may succeed". True only
+        for transient conditions: rate limits, upstream 5xx, network blips.
+
+    Those two are independent and both useful. A 404 on a bad ticker is
+    recoverable (ask the user which company they meant) but not retryable
+    (calling again returns the same 404). A 429 is both. Collapsing them, which
+    the first version of this envelope did by hardcoding ``recoverable: True``,
+    left the model unable to tell a permanent failure from a transient one.
+
+    Subclasses set ``code`` and the taxonomy; ``retry_after_seconds`` is filled
+    in from EDGAR's ``Retry-After`` header when the upstream sends one.
+    """
+
+    code: str = "INTERNAL"
+    category: str = "internal"
+    retryable: bool = False
+    recoverable: bool = True
+
+    def __init__(self, message: str, *, retry_after_seconds: float | None = None,
+                 **extra: Any):
+        super().__init__(message)
+        self.retry_after_seconds = retry_after_seconds
+        self.extra = extra
+
+    def envelope(self) -> dict:
+        """The dict a tool returns for this error.
+
+        ``error`` and ``recoverable`` are kept exactly as the original envelope
+        had them: SKILL.md instructs the model on that shape and the golden
+        snapshots capture it, so the new fields are additive.
+        """
+        payload = {
+            "error": str(self),
+            "recoverable": self.recoverable,
+            "code": self.code,
+            "category": self.category,
+            "retryable": self.retryable,
+        }
+        if self.retry_after_seconds is not None:
+            payload["retry_after_seconds"] = self.retry_after_seconds
+        payload.update(self.extra)
+        return payload
+
+
+class InvalidArgument(EdgarError):
+    """Caller passed something the tool cannot act on (bad years, bad limit)."""
+
+    code = "INVALID_ARGUMENT"
+    category = "client_error"
+
+
+class CompanyNotFound(EdgarError):
+    """No SEC registrant matches the query. Permanent for this query."""
+
+    code = "COMPANY_NOT_FOUND"
+    category = "client_error"
+
+
+class InvalidTag(EdgarError):
+    """A malformed or non-existent XBRL tag was requested."""
+
+    code = "INVALID_TAG"
+    category = "client_error"
+
+
+class NoXBRLData(EdgarError):
+    """The filer exists but reports no usable US-GAAP XBRL facts.
+
+    A data gap rather than a client error: the request was well-formed and
+    EDGAR answered honestly. Foreign private issuers filing 20-F under IFRS are
+    the common case.
+    """
+
+    code = "NO_XBRL_DATA"
+    category = "data_gap"
+
+
+class SectionNotFound(EdgarError):
+    """A filing section could not be isolated from the document."""
+
+    code = "SECTION_NOT_FOUND"
+    category = "data_gap"
+
+
+class RateLimited(EdgarError):
+    """SEC is throttling us. Transient by definition."""
+
+    code = "RATE_LIMITED"
+    category = "upstream_error"
+    retryable = True
+
+
+class UpstreamUnavailable(EdgarError):
+    """EDGAR failed in a way that may not recur: 5xx, timeout, connection reset."""
+
+    code = "UPSTREAM_UNAVAILABLE"
+    category = "upstream_error"
+    retryable = True
 
 
 # --------------------------------------------------------------------------- #
@@ -141,9 +247,24 @@ def _throttle() -> None:
         _last_call[0] = time.monotonic()
 
 
+def _retry_after(resp: requests.Response) -> float | None:
+    """Parse EDGAR's Retry-After header, if it sent one.
+
+    Worth surfacing rather than only sleeping on: once retries here are
+    exhausted, the caller is told how long to wait before trying again instead
+    of having to guess.
+    """
+    raw = (resp.headers.get("Retry-After") or "").strip()
+    try:
+        return float(raw) if raw else None
+    except ValueError:
+        return None  # HTTP-date form; we do not parse it, we just do not claim one
+
+
 def _get(url: str) -> requests.Response:
     """GET with fair-access throttling and backoff on transient failures."""
     delay = 0.5
+    last_retry_after: float | None = None
     for attempt in range(_MAX_RETRIES + 1):
         _throttle()
         STATS["requests"] += 1
@@ -156,29 +277,42 @@ def _get(url: str) -> requests.Response:
                 time.sleep(delay)
                 delay *= 2
                 continue
-            raise EdgarError(f"Network error contacting EDGAR ({url}): {exc}") from exc
+            raise UpstreamUnavailable(
+                f"Network error contacting EDGAR ({url}): {exc}"
+            ) from exc
 
         if resp.status_code == 200:
             return resp
         if resp.status_code == 403:
-            raise EdgarError(
+            # Not retryable: the header is wrong and will stay wrong until a
+            # human fixes it. Retrying would just hammer EDGAR over our own bug.
+            raise InvalidArgument(
                 "EDGAR returned 403 Forbidden. Set a descriptive EDGAR_USER_AGENT "
                 "with contact info (SEC fair-access policy requires it)."
             )
         if resp.status_code == 404:
-            raise EdgarError(f"EDGAR resource not found (404): {url}")
+            raise CompanyNotFound(f"EDGAR resource not found (404): {url}")
         # 429 / 5xx are transient — back off and retry.
-        if resp.status_code in (429, 500, 502, 503, 504) and attempt < _MAX_RETRIES:
-            STATS["retries"] += 1
-            retry_after = resp.headers.get("Retry-After")
-            sleep_for = float(retry_after) if (retry_after or "").isdigit() else delay
-            log.warning("EDGAR %s on %s — retrying in %.1fs",
-                        resp.status_code, url, sleep_for)
-            time.sleep(sleep_for)
-            delay *= 2
-            continue
-        raise EdgarError(f"EDGAR returned HTTP {resp.status_code} for {url}")
-    raise EdgarError(f"EDGAR request failed after retries: {url}")
+        if resp.status_code in (429, 500, 502, 503, 504):
+            last_retry_after = _retry_after(resp) or last_retry_after
+            if attempt < _MAX_RETRIES:
+                STATS["retries"] += 1
+                sleep_for = last_retry_after if last_retry_after else delay
+                log.warning("EDGAR %s on %s — retrying in %.1fs",
+                            resp.status_code, url, sleep_for)
+                time.sleep(sleep_for)
+                delay *= 2
+                continue
+            # Retries exhausted. Distinguish throttling from a server fault so
+            # the caller knows whether backing off further is likely to help.
+            error = RateLimited if resp.status_code == 429 else UpstreamUnavailable
+            raise error(
+                f"EDGAR returned HTTP {resp.status_code} for {url} after "
+                f"{_MAX_RETRIES + 1} attempts.",
+                retry_after_seconds=last_retry_after,
+            )
+        raise UpstreamUnavailable(f"EDGAR returned HTTP {resp.status_code} for {url}")
+    raise UpstreamUnavailable(f"EDGAR request failed after retries: {url}")
 
 
 def _get_json(url: str) -> dict:
@@ -278,7 +412,7 @@ def resolve_company(query: str, max_candidates: int = 5) -> dict:
             wrong company.
     """
     if not query or not query.strip():
-        raise EdgarError("Empty company query.")
+        raise InvalidArgument("Empty company query.")
     q = query.strip()
     rows = _load_ticker_map()
 
@@ -304,7 +438,7 @@ def resolve_company(query: str, max_candidates: int = 5) -> dict:
             "note": f"{len(partial)} companies matched '{query}'. "
                     "Pass a ticker or exact name to disambiguate.",
         }
-    raise EdgarError(
+    raise CompanyNotFound(
         f"No SEC-registered company matched '{query}'. "
         "Note: EDGAR only covers SEC filers (public/registered companies)."
     )
@@ -315,11 +449,22 @@ class AmbiguousCompany(EdgarError):
 
     Carries the candidate list so the server layer can hand the model the same
     disambiguation payload `resolve_company` returns — the two paths agree.
+
+    Not retryable: the same query returns the same ambiguity every time. It is
+    resolved by the user picking a candidate, not by calling again.
     """
+
+    code = "AMBIGUOUS_COMPANY"
+    category = "client_error"
 
     def __init__(self, payload: dict):
         self.payload = payload
         super().__init__(payload.get("note", "Ambiguous company name."))
+
+    def envelope(self) -> dict:
+        # Candidates first, so the model reads the choice it has to offer the
+        # user before the error framing around it.
+        return {**self.payload, **super().envelope()}
 
 
 def _resolve_cik(query: str) -> dict:
@@ -608,11 +753,12 @@ def get_financial_concept(query: str, metric_or_tag: str, years: int = 6) -> dic
     Escape-hatch / flexibility tool: return the annual series for either a
     friendly metric name (see CONCEPT_MAP) or a raw US-GAAP tag.
     """
+    _validate_years(years)
     comp = _resolve_cik(query)
     candidates = CONCEPT_MAP.get(metric_or_tag)
     if candidates is None:
         if not _TAG_RE.match(metric_or_tag):
-            raise EdgarError(
+            raise InvalidTag(
                 f"'{metric_or_tag}' is neither a known metric name "
                 f"({', '.join(sorted(CONCEPT_MAP))}) nor a valid US-GAAP tag."
             )
@@ -621,11 +767,15 @@ def get_financial_concept(query: str, metric_or_tag: str, years: int = 6) -> dic
     facts = get_company_facts(comp["cik10"])
     series, used = merged_series(facts, comp["cik"], candidates)
     if not series:
+        # Success with a structured absence, not an error: EDGAR answered, and
+        # the answer was "this filer does not report that". `note` stays for
+        # backward compatibility; `absence` is the machine-readable form.
         return {
             "company": comp,
             "metric": metric_or_tag,
             "tags_tried": candidates,
             "series": [],
+            "absence": _absence("TAG_NOT_REPORTED", candidates),
             "note": f"No annual data found for '{metric_or_tag}' "
                     f"(tried tags: {', '.join(candidates)}).",
         }
@@ -638,6 +788,111 @@ def get_financial_concept(query: str, metric_or_tag: str, years: int = 6) -> dic
         "tags_tried": candidates,
         "series": [sv.to_dict() for sv in series],
     }
+
+
+# --------------------------------------------------------------------------- #
+# Structured absence
+# --------------------------------------------------------------------------- #
+#
+# One rule, applied everywhere:
+#
+#   Reaching EDGAR and getting a valid answer of "nothing" is a SUCCESS with an
+#   explicit, structured absence. Only failing to OBTAIN an answer is an error.
+#
+# Before this, the same condition produced four different shapes depending on
+# which tool you asked. The worst was get_key_financials handing back a bare
+# `[]` for an untagged line item with no explanation anywhere in the payload:
+# screening AMD returned "total_liabilities": [] and a reader could not tell
+# "this filer does not tag it" from "our fetch failed". compute_screening_metrics
+# listed it under data_quality.missing_line_items, but the tool one level down
+# gave you nothing.
+#
+# This makes gaps legible. It does not fill them — invariant 7 still holds:
+# missing data is reported, never estimated.
+
+_MAX_YEARS = 25  # EDGAR's XBRL era starts ~2009; beyond this there is nothing to fetch.
+
+
+def _validate_years(years: int, *, maximum: int = _MAX_YEARS) -> int:
+    """Reject a nonsense window before it produces a confidently wrong answer.
+
+    This is not defensive padding. `years=-5` produced an empty fiscal-year
+    window, which tripped the same "nothing found" branch as a genuine IFRS
+    filer — so asking for Apple with a negative window returned *"No XBRL
+    financial data found for Apple Inc. Foreign or non-standard filers (20-F /
+    IFRS) may not report US-GAAP XBRL facts."* Apple reports XBRL exhaustively.
+    The tool blamed the filer for the caller's mistake, which is precisely the
+    plausible-but-wrong failure this codebase exists to avoid.
+    """
+    if not isinstance(years, int) or isinstance(years, bool):
+        raise InvalidArgument(f"`years` must be an integer, got {type(years).__name__}.")
+    if years < 1:
+        raise InvalidArgument(
+            f"`years` must be at least 1, got {years}. A non-positive window "
+            "yields no fiscal years, which is not the same as the filer having "
+            "no data."
+        )
+    if years > maximum:
+        raise InvalidArgument(
+            f"`years` must be at most {maximum}, got {years}. EDGAR's XBRL era "
+            "begins around 2009, so a longer window cannot return more."
+        )
+    return years
+
+
+def _validate_limit(limit: int, *, maximum: int = 100) -> int:
+    """Same reasoning as `_validate_years`, for filing-list pagination."""
+    if not isinstance(limit, int) or isinstance(limit, bool):
+        raise InvalidArgument(f"`limit` must be an integer, got {type(limit).__name__}.")
+    if limit < 1:
+        raise InvalidArgument(f"`limit` must be at least 1, got {limit}.")
+    if limit > maximum:
+        raise InvalidArgument(f"`limit` must be at most {maximum}, got {limit}.")
+    return limit
+
+
+ABSENCE_CODES = {
+    "TAG_NOT_REPORTED": "The filer has never reported any of the candidate tags.",
+    "TAG_DISCONTINUED": "The filer reported this once but stopped before the "
+                        "reference fiscal year, so using it would pair a stale "
+                        "numerator with a current denominator.",
+    "OUTSIDE_WINDOW": "Reported, but only outside the requested fiscal-year window.",
+}
+
+
+def _absence(code: str, tags_tried: list[str], *,
+             last_reported: Optional[int] = None,
+             reference_fiscal_year: Optional[int] = None) -> dict:
+    """Describe *why* a series is empty, in a shape every tool shares."""
+    note = ABSENCE_CODES.get(code, "")
+    if code == "TAG_DISCONTINUED" and last_reported:
+        note = (f"Last reported for fiscal {last_reported}; the screen is anchored "
+                f"to {reference_fiscal_year}. Excluded rather than carried forward.")
+    return {
+        "code": code,
+        "tags_tried": tags_tried,
+        "last_reported_fiscal_year": last_reported,
+        "note": note,
+    }
+
+
+def _classify_absence(metric: str, tags_tried: list[str],
+                      full_series: list, reference_fy: Optional[int]) -> dict:
+    """Work out which kind of nothing this is.
+
+    `full_series` is the unwindowed series — the distinction between "never
+    reported" and "reported, then abandoned" is only visible before windowing,
+    and it is the distinction a reader most needs.
+    """
+    if not full_series:
+        return _absence("TAG_NOT_REPORTED", tags_tried)
+    years = [sv.fiscal_year for sv in full_series if sv.fiscal_year is not None]
+    last = max(years) if years else None
+    if last is not None and reference_fy is not None and last < reference_fy:
+        return _absence("TAG_DISCONTINUED", tags_tried, last_reported=last,
+                        reference_fiscal_year=reference_fy)
+    return _absence("OUTSIDE_WINDOW", tags_tried, last_reported=last,
+                    reference_fiscal_year=reference_fy)
 
 
 # The line items that define "which fiscal year is this screen about".
@@ -693,15 +948,26 @@ def get_key_financials(query: str, years: int = 5) -> dict:
     Curated multi-year financials across income statement, balance sheet and
     cash flow. Every value is a SourcedValue (period + form + accession + URL).
     """
-    comp, series_map, tags_used, reference_fy, _full = _all_line_items(query, years)
+    _validate_years(years)
+    comp, series_map, tags_used, reference_fy, full = _all_line_items(query, years)
     if not any(series_map.values()):
-        raise EdgarError(
+        raise NoXBRLData(
             f"No XBRL financial data found for {comp['name']} "
             f"(CIK {comp['cik']}). Foreign or non-standard filers (20-F / IFRS) "
             "may not report US-GAAP XBRL facts."
         )
     mixed = sorted(m for m, used in tags_used.items() if len(used) > 1)
-    return {
+
+    # Every empty line item gets a reason. Without this the caller sees a bare
+    # `[]` and cannot distinguish an untagged concept from a failed fetch — which
+    # is exactly what screening AMD produced for total_liabilities.
+    absent = {
+        metric: _classify_absence(metric, CONCEPT_MAP.get(metric, []),
+                                  full.get(metric, []), reference_fy)
+        for metric, series in series_map.items() if not series
+    }
+
+    result = {
         "company": comp,
         "years_requested": years,
         "reference_fiscal_year": reference_fy,
@@ -713,6 +979,15 @@ def get_key_financials(query: str, years: int = 5) -> dict:
             for metric, series in series_map.items()
         },
     }
+    if absent:
+        result["absent_line_items"] = absent
+        result["absence_note"] = (
+            f"{len(absent)} of {len(series_map)} line items are empty. Each is "
+            "explained in `absent_line_items` with the tags tried and why nothing "
+            "was usable. These are gaps in the filer's XBRL, not fetch failures — "
+            "report them as gaps and do not estimate around them."
+        )
+    return result
 
 
 # --------------------------------------------------------------------------- #
@@ -791,6 +1066,85 @@ def _months_since(period_end: Optional[str]) -> Optional[float]:
     return (_today() - end).days / 30.44
 
 
+FLAG_CATALOGUE: dict[str, dict[str, str]] = {
+    # --- high: a reason to stop and think before spending more time ---
+    "NEGATIVE_EQUITY": {
+        "severity": "high",
+        "fires_when": "Stockholders' equity is below zero.",
+        "why": "Ratios that divide by equity stop being interpretable, and it is a "
+               "capital-structure issue in its own right.",
+    },
+    "EARNINGS_QUALITY": {
+        "severity": "high",
+        "fires_when": "Net income is positive while operating income is negative.",
+        "why": "Profit is coming from outside the operating business. The gap has to "
+               "be identified before the company can be called profitable.",
+    },
+    "LIQUIDITY": {
+        "severity": "high",
+        "fires_when": "Current ratio is below the `current_ratio_low` threshold.",
+        "why": "Current liabilities exceed current assets. Structural for some "
+               "retailers, so read it against the sector before calling it distress.",
+    },
+    "LEVERAGE": {
+        "severity": "high",
+        "fires_when": "Debt/EBITDA exceeds the `debt_to_ebitda_high` threshold.",
+        "why": "Constrains what an acquirer can do with the existing capital structure.",
+    },
+    "COVERAGE": {
+        "severity": "high",
+        "fires_when": "Interest coverage is below the `interest_coverage_low` threshold.",
+        "why": "Operating earnings are thin relative to interest owed.",
+    },
+    "NEGATIVE_EBITDA": {
+        "severity": "high",
+        "fires_when": "The EBITDA proxy is negative.",
+        "why": "Any multiple built on it is meaningless, so leverage cannot be read "
+               "the usual way.",
+    },
+    # --- medium: worth a paragraph in the memo ---
+    "REVENUE_DECLINE": {
+        "severity": "medium",
+        "fires_when": "Year-over-year revenue change is below `revenue_decline_pct`.",
+        "why": "Direction matters more than level in a first-pass screen.",
+    },
+    "CASH_BURN": {
+        "severity": "medium",
+        "fires_when": "Operating cash flow is negative in the reference year.",
+        "why": "The business consumed cash rather than generating it.",
+    },
+    "STALE_DATA": {
+        "severity": "medium",
+        "fires_when": "The latest annual period end is older than `stale_data_months`.",
+        "why": "The screen may predate a material change; check for a recent filing.",
+    },
+    # --- info: data-quality caveats, not findings about the business ---
+    "MISSING_DATA": {
+        "severity": "info",
+        "fires_when": "One or more curated line items are not tagged by this filer.",
+        "why": "Named rather than estimated. See `absent_line_items` for which and why.",
+    },
+    "TAG_DISCONTINUED": {
+        "severity": "info",
+        "fires_when": "A filer stopped tagging a concept before the reference year.",
+        "why": "Excluded rather than carried forward, which would pair a stale "
+               "numerator with a current denominator.",
+    },
+    "MIXED_TAG_BASIS": {
+        "severity": "info",
+        "fires_when": "A series was assembled across more than one US-GAAP tag.",
+        "why": "Usually comparable, but ASC 606 sometimes changed the number and not "
+               "just the label, so a long trend deserves a spot-check.",
+    },
+    "RESTATED": {
+        "severity": "info",
+        "fires_when": "A period's value differs from what an earlier filing reported.",
+        "why": "The figure shown is as-last-reported; the change is auditable rather "
+               "than invisible.",
+    },
+}
+
+
 def _detect_flags(metrics: dict, vals: dict, svs: dict,
                   latest_period_end: Optional[str],
                   mixed: list[str], restated: list[str],
@@ -805,9 +1159,13 @@ def _detect_flags(metrics: dict, vals: dict, svs: dict,
     flags: list[dict] = []
 
     def add(code, severity, message, evidence=()):
+        # Severity comes from FLAG_CATALOGUE, not from the call site, so the
+        # catalogue exposed as an MCP resource cannot drift from the behaviour --
+        # there is exactly one place a severity is written down. An unknown code
+        # raises KeyError, which is correct: it is a programming error.
         flags.append({
             "code": code,
-            "severity": severity,
+            "severity": FLAG_CATALOGUE[code]["severity"],
             "message": message,
             "evidence": [sv.to_dict() for sv in evidence if sv],
         })
@@ -913,9 +1271,10 @@ def compute_screening_metrics(query: str, years: int = 5) -> dict:
     metric carries the sourced inputs it was computed from and a `meaningful`
     boolean, so the caller never has to decide whether a ratio is quotable.
     """
+    _validate_years(years)
     comp, s, tags_used, reference_fy, full = _all_line_items(query, years)
     if not any(s.values()) or reference_fy is None:
-        raise EdgarError(
+        raise NoXBRLData(
             f"No XBRL financial data found for {comp['name']} (CIK {comp['cik']})."
         )
 
@@ -1075,6 +1434,7 @@ def compute_screening_metrics(query: str, years: int = 5) -> dict:
 
 def list_filings(query: str, form_types: Optional[list[str]] = None,
                  limit: int = 15) -> dict:
+    _validate_limit(limit)
     comp = _resolve_cik(query)
     subs = _get_submissions(comp["cik10"])
     recent = subs.get("filings", {}).get("recent", {})
@@ -1470,7 +1830,7 @@ def _find_section_span(text: str, start_pat: str, end_pat: str
 def extract_section(text: str, section: str = "risk_factors") -> Optional[str]:
     """Pure-text section extraction, split out so it is unit-testable."""
     if section not in SECTION_PATTERNS:
-        raise EdgarError(
+        raise InvalidArgument(
             f"Unknown section {section!r}. Known: {', '.join(sorted(SECTION_PATTERNS))}."
         )
     text = re.sub(r"[ \t\xa0]+", " ", text)
@@ -1502,7 +1862,9 @@ def get_risk_factors(query: str, max_chars: int = 12000) -> dict:
     comp = _resolve_cik(query)
     k = _find_latest_10k(comp)
     if not k:
-        raise EdgarError(f"No 10-K on file for {comp['name']} (CIK {comp['cik']}).")
+        raise SectionNotFound(
+            f"No 10-K on file for {comp['name']} (CIK {comp['cik']})."
+        )
     url = _document_url(comp["cik"], k["accession"], k["primary_document"])
     soup = BeautifulSoup(_get(url).text, "lxml")
     section = extract_item_1a(soup.get_text("\n"), max_chars)

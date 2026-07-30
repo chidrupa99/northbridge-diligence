@@ -47,7 +47,7 @@ skill/SKILL.md              The company-screen skill. Frontmatter name and
                             description must stay within 64/1024 characters
                             (currently 14/670) or the skill silently fails to load.
 scripts/doctor.py           Install verification. Live calls, not fixtures.
-tests/                      65 unit tests + 2 golden-set cases. Offline, ~1s.
+tests/                      144 unit tests + 2 golden-set cases. Offline, ~1s.
 samples/                    Two worked memos (BYND, TGT) in .md and .html.
 README.md                   Reviewer-facing. Design decisions, seams.
 DEPLOYMENT.md               Client-side install.
@@ -77,7 +77,7 @@ python -m pip install --upgrade pip          # editable installs need pip >= 21.
 pip install -e ".[dev]"                      # runtime + test deps
 export EDGAR_USER_AGENT="Your Name you@example.com"
 
-python -m pytest             # 67 tests, offline, ~1s
+python -m pytest             # 146 tests, offline, ~1s
 python scripts/doctor.py     # live checks against real EDGAR
 ```
 
@@ -162,6 +162,26 @@ Break these and the tool loses the argument it is built to make.
     last match (lands on a cross-reference *after* the section — that returned
     2,958 characters of the wrong section on Dollar General and reported
     success). See `_find_section_span`.
+12. **A gap is a success, not an error.** Reaching EDGAR and getting a valid
+    answer of "nothing" returns a structured `absence` (`TAG_NOT_REPORTED`,
+    `TAG_DISCONTINUED`, `OUTSIDE_WINDOW`) naming the tags tried. Only failing to
+    *obtain* an answer raises. Never return a bare `[]` — a reader cannot
+    distinguish an untagged concept from a failed fetch, and screening AMD used
+    to hand back `"total_liabilities": []` with no explanation anywhere in the
+    payload. This makes gaps legible; it does not fill them, so invariant 7
+    still holds.
+13. **Errors carry a taxonomy, and `recoverable` is not `retryable`.**
+    `recoverable` means the model can continue its turn; `retryable` means this
+    exact call may succeed later. A bad ticker is the first and not the second.
+    Every `EdgarError` subclass sets `code` and `category`; only rate limits and
+    upstream 5xx set `retryable`. 403 is deliberately a client error — the header
+    is wrong and will stay wrong, so retrying would hammer EDGAR over our bug.
+14. **Validate arguments before they become a wrong diagnosis.** `years=-5` once
+    produced an empty fiscal-year window, tripping the same "nothing found"
+    branch as a genuine IFRS filer — so Apple came back as *"Foreign or
+    non-standard filers may not report US-GAAP XBRL facts."* The tool blamed the
+    filer for the caller's mistake. `_validate_years` / `_validate_limit` return
+    `INVALID_ARGUMENT` instead.
 
 ---
 
@@ -186,7 +206,7 @@ Break these and the tool loses the argument it is built to make.
 ## Tests
 
 ```bash
-python -m pytest -q          # 67 pass, offline, ~1s
+python -m pytest -q          # 146 pass, offline, ~1s
 ```
 
 Fully offline against recorded fixtures. `conftest.py` monkeypatches `ec._get`
@@ -254,6 +274,85 @@ set is item 5 in the README roadmap for that reason.
   Add `-s 2` for the png. `docs/architecture_flow.html` embeds the SVG inline — swap
   the `<svg>...</svg>` block when you re-render, or the viewer goes stale
   silently.
+
+---
+
+## Output schemas: measured, then declined
+
+MCP 2.0 supports `outputSchema`, the tool returns are richly structured, and none
+of them declare one. That is a deliberate call rather than an omission, and it is
+worth recording the measurement behind it because the obvious objection —
+"the shape is probably too variable" — turns out to be wrong.
+
+**The shape is stable.** Across the two fixture filers, `compute_screening_metrics`
+returns identical top-level keys and an identical metric set, including for a bank-
+shaped filer with a completely different balance sheet. What varies is which
+metrics carry `meaningful: false`, not which keys exist. So a schema is feasible.
+
+Three reasons not to, in descending weight:
+
+1. **Every tool can return an error envelope instead of its success shape.** Any
+   honest `outputSchema` is therefore a union, and the error branch is the more
+   likely response in exactly the situations where validation would matter. A
+   client validating strictly against the success shape would reject a
+   well-formed, deliberately-designed error.
+2. **A hand-written schema is a second description of the same fact** — free to
+   disagree with the code that builds the dict. That is the identical hazard the
+   resources in `server.py` are generated to avoid, and it would be inconsistent
+   to accept it here after rejecting it there. Generating a schema from observed
+   output would over-constrain: it would mark `absent_line_items` as always
+   present, when its absence is meaningful.
+3. **The tests already assert the shape more precisely than a schema could** —
+   that inputs are `SourcedValue`s, that point-in-time metrics never mix fiscal
+   years, that absence agrees across two code paths. A schema checks types; those
+   check meaning.
+
+**What would change the decision:** an SDK that lets a tool declare success and
+error variants separately, or a schema generated from the same code that builds
+the response rather than transcribed alongside it. Until one exists, a declared
+schema would buy type-checking already covered and add a drift risk this codebase
+has otherwise designed out.
+
+A test pins the shape stability measured above, so the groundwork is in place if
+that changes.
+
+---
+
+## The deliverable format: audited, not rendered
+
+The memo is written by the model, and for a while nothing in code checked it. That
+was the one place the "code decides what must be reproducible" argument did not
+hold — a model having an off day could drop a source marker, quote a metric marked
+`meaningful: false`, or omit a high-severity flag, and no test would notice.
+
+**A full renderer was the obvious fix and is the wrong one.** Screen dict in,
+finished HTML out, would either strip the judgment that makes the memo worth
+reading — what leads, which risk matters, what to ask next — or demand the model
+hand over narrative strings to slot into fixed holes, which is a template wearing
+a renderer's name. That judgment is exactly the part a language model should own.
+
+So `memo_audit.py` checks invariants instead of owning layout. Three properties,
+each corresponding to a promise the README makes:
+
+- every `[S#]` marker resolves to a Sources row, and no row is stale
+- no metric with `meaningful: false` appears as a bare number
+- every high- and medium-severity flag appears in the memo
+
+It earned its place on first run. Pointed at the two sample memos already
+committed as exemplars, it found three real defects: BYND's HTML declared `S2` and
+never cited it while the Markdown did, and both TGT renderings carried an `S4` row
+for a 10-Q no figure came from. Those are precisely the failures it exists to
+catch, sitting in the documents held up as correct.
+
+What it deliberately does not check: whether the prose is good, whether the right
+finding leads, whether the analysis is sound. A regex asserting those would be
+theatre.
+
+**Still worth building, and named as next work rather than left implicit:** a
+hybrid renderer where code owns the *structure* (tables, the Sources block,
+`meaningful: false` rendering) and the model supplies only the narrative
+paragraphs. That gets the enforcement without flattening the judgment, and the
+auditor becomes its test rather than its replacement.
 
 ---
 
