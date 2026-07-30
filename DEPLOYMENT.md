@@ -83,7 +83,7 @@ export EDGAR_USER_AGENT="Northbridge Capital Partners research@northbridge.examp
 
 `export` sets an **environment variable** — a named value the terminal remembers for this session and passes to any program launched from it. `EDGAR_USER_AGENT` is the name our code looks up; the string in quotes is what SEC sees when the tool makes a request. This is not a credential — EDGAR is public, no login exists — it is a contact string SEC's fair-access policy requires so they can reach someone about unusual traffic. Use a real, monitored address at your firm; without it, EDGAR returns HTTP 403.
 
-The `export` lasts only for this terminal session. In step 5 you set the same value again inside the Claude client's config, and that copy is what applies when the client launches the server for real.
+The `export` lasts only for this terminal session. The client needs it too, and does not inherit it from your shell — the plugin passes `${EDGAR_USER_AGENT}` through from the environment, so set it in a shell profile rather than only in this terminal. Registering by hand instead means writing the value into an `env` block; either way the client gets its own copy.
 
 ### 4. Verify — before wiring anything into a client
 
@@ -93,15 +93,64 @@ python scripts/doctor.py
 
 Eleven checks: Python version, whether this project itself is installed, dependencies, the contact header, reachability of each SEC host separately, a live screen of a real company, the 8 registered tools, the skill's frontmatter, and **which Claude clients actually have the server registered**. Every failure prints its fix. Exit code is 0 only when all pass, so it can gate a rollout.
 
-The last check is the one that matters most after step 5, and it will fail now — nothing is registered yet. Run `doctor.py` again after step 6.
+The last check is the one that matters most after step 5, and it will fail now — nothing is registered yet. Run `doctor.py` again after step 5.
 
 Do this **before** step 5. Otherwise a broken install first appears as a skill that silently returns nothing inside a Claude conversation — the worst possible place to debug it.
 
-### 5. Register the server with the Claude client
+### 5. Install the plugin
 
-This one is not a shell command. It edits a **JSON configuration file** on disk that the Claude client reads at launch.
+```
+/plugin marketplace add /path/to/northbridge-diligence
+/plugin install northbridge-diligence
+```
 
-**First decide which surface you are installing for.** The tool has two halves — the MCP server and the skill — and they live in different places for different clients. Registering the server with one client and copying the skill into another client's directory leaves both halves installed and neither surface working, with every check still reporting green. That is the single most common install failure.
+Restart the client. That is the whole registration step.
+
+The plugin ships the MCP server config **and** the skill as one unit, which matters
+more than convenience: installed by hand the two halves go to different places, and
+*which* places depends on the surface. Register the server with one client while
+copying the skill into another client's directory and both halves are installed,
+neither surface works, and every check still reports green. That is the single most
+common way this tool gets installed wrong, and it happened on a real Windows machine.
+A plugin makes it impossible rather than documented.
+
+Confirm with `python scripts/doctor.py` — check 11 reports `wired: Plugin (bundled)`.
+
+> **On Windows**, edit one line in `plugin/.mcp.json` first: change the command to
+> `${CLAUDE_PLUGIN_ROOT}/../.venv/Scripts/edgar-mcp.exe`. A single bundled config
+> cannot cover both platforms, because the interpreter path differs and there is no
+> conditional syntax.
+
+> **`EDGAR_USER_AGENT` is passed through from the environment**, so it must be set
+> where the client can see it — a shell profile, not just the terminal you
+> installed from. A GUI-launched client inherits nothing from a terminal. Or replace
+> the placeholder in `plugin/.mcp.json` with the literal contact string.
+
+### 6. Confirm the analyst can use it
+
+Have them say: **"Screen Beyond Meat for the deal team"** — or any ticker or company name. There is no command to remember; the skill triggers on the request itself, so "size up Dollar General" or "pull the financials on TGT" work equally well.
+
+**How to confirm it worked.** Two tells:
+
+1. `[S1]`-style source markers on every figure in the memo
+2. A Sources table at the bottom mapping each marker to a filing accession and URL
+
+> **Figures without source markers mean the skill is not being used.** Claude answered from its own knowledge rather than calling the tools, and those numbers trace to nothing. Re-check step 5 and confirm the client was restarted.
+
+If the analyst names an ambiguous company — "Delta", "American" — the skill returns candidates and asks which they mean rather than guessing. That is intended behaviour, not a failure.
+
+<details>
+<summary><b>Fallback: registering by hand</b> — for Claude Desktop chat, or if you would rather not use a plugin</summary>
+
+Plugins are a Claude Code feature. If your analysts use the Claude Desktop chat
+surface, or you want the manual route, this is it — and this is where the
+surface-mismatch risk lives, so read the matrix before choosing a row.
+
+> **Quit the client before editing its config.** Claude Desktop holds the file in
+> memory and flushes its own `preferences` back over it while running, so an edit
+> made to a live config is silently clobbered — an added `mcpServers` key was
+> observed disappearing within two minutes. Quit fully, edit, save, reopen. That is
+> separate from the restart needed *after* editing: quit before, reopen after.
 
 | Surface | MCP server config | Skill location | Works? |
 |---|---|---|---|
@@ -142,102 +191,65 @@ This one is not a shell command. It edits a **JSON configuration file** on disk 
 > This is separate from the restart needed *after* editing: quit before, reopen
 > after.
 
-### Recommended: install as a plugin
-
-The matrix above exists because the tool has two halves that go to different
-places, and getting them onto different surfaces is the most common install
-failure. A plugin removes the possibility rather than warning about it — the
-skill and the MCP server config ship as one unit, so **there is no way to install
-half of it.**
-
-```bash
-/plugin marketplace add /absolute/path/to/northbridge-diligence
-/plugin install northbridge-diligence
-```
-
-That is the whole install. `doctor.py` recognises it and reports
-`wired: Plugin (bundled)`.
-
-Two things it does not fix, stated plainly:
-
-- **The bundled `.mcp.json` hardcodes a POSIX venv path**
-  (`${CLAUDE_PLUGIN_ROOT}/../.venv/bin/edgar-mcp`), correct when the plugin sits
-  inside the cloned repo. On Windows change it to `../.venv/Scripts/edgar-mcp.exe`.
-  A single config cannot cover both platforms — there is no conditional syntax and
-  the interpreter path differs.
-- **`EDGAR_USER_AGENT` is passed through from the environment**, so it has to be
-  set somewhere a GUI-launched client can see — a shell profile, not just the
-  terminal you installed from. Or replace the placeholder with the literal string.
-
-Validated against Claude Code **2.1.91**. The manifest deliberately omits
-`displayName` and `$schema`: both are documented fields, and both are hard errors
-on that version. See [`plugin/README.md`](plugin/README.md).
-
-The hand-install path below still works and is still supported.
-
-**Add — do not replace.** That file may already have content: `preferences`, `mcpServers` for other tools, `coworkUserFilesPath`. Overwriting it wipes what is already there. If `mcpServers` does not exist yet, add the whole key as a sibling of anything already present. If it does, add `northbridge-diligence` inside it alongside the other servers.
-
-The block to add — with **your real paths**, not `/absolute/path/to/...`:
+**Add — do not replace.** The file may already hold `preferences`, other
+`mcpServers`, or `coworkUserFilesPath`. Overwriting wipes them. On a fresh install
+the `mcpServers` key is usually absent entirely and has to be added alongside the
+existing keys, not edited.
 
 ```jsonc
 {
   "mcpServers": {
     "northbridge-diligence": {
-      "command": "/Users/<user>/Applications/northbridge-diligence/.venv/bin/edgar-mcp",
+      "command": "/absolute/path/to/northbridge-diligence/.venv/bin/edgar-mcp",
       "env":     { "EDGAR_USER_AGENT": "Northbridge Capital Partners research@northbridge.example" }
     }
   }
 }
 ```
 
-On Windows the path is `...\.venv\Scripts\edgar-mcp.exe`. To print the exact
-value to paste, with the virtualenv active:
+On Windows the command is `...\.venv\Scripts\edgar-mcp.exe`. Print the exact value
+to paste, with the virtualenv active:
 
 ```bash
 python -c "import shutil; print(shutil.which('edgar-mcp'))"
 ```
 
-Then **restart Claude Desktop** — it only reads this file at launch.
+Four things that catch people out:
 
-Four things that catch people out here:
+- **Nobody runs `edgar-mcp` by hand.** It speaks MCP over stdio, so it waits
+  silently on standard input — run it in a terminal and you get a cursor that never
+  returns, which looks broken but is correct. The client launches it.
+- **Point `command` at the virtualenv's `edgar-mcp`**, not a bare `edgar-mcp`. The
+  client starts the server in its own environment and will not inherit an activated
+  venv.
+- **Absolute paths only.** No `~`, no relative paths — the client is not running
+  from a shell, so tilde-expansion does not happen.
+- **The `env` block here is separate from the `export` in step 3, and both are required.**
+  Each client spawns its own copy of the server, so the value has to be duplicated
+  into every client config. Omit it and SEC returns 403 to the client while
+  `doctor.py` keeps passing.
 
-- **Nobody runs `edgar-mcp` by hand.** It speaks MCP over *stdio*, so it waits silently on standard input — run it in a terminal and you get a cursor that never returns, which looks broken but is correct. The client launches it, the way an operating system talks to a plugged-in device.
-- **Point `command` at the virtualenv's `edgar-mcp`**, not a bare `edgar-mcp`. The client starts the server in its own environment and will not inherit an activated venv, so an unqualified command will not be found.
-- **Absolute paths only.** No `~`, no relative paths. The client is not running from a shell so tilde-expansion does not happen.
-- **The `env` block here is separate from the `export` in step 3, and both are required.** A GUI-launched client inherits nothing from a terminal, and each client spawns its own copy of the server — so the value has to be duplicated into every client config you create. The `export` covers `doctor.py` in your shell; the `env` block covers the server as the client runs it. Omit the `env` block and SEC returns 403 to the client while `doctor.py` keeps passing.
+If the JSON is malformed, Claude silently ignores the whole file. Validate it before
+restarting; if your editor shows it red, do not restart yet.
 
-If the JSON is malformed — a missing comma, an unmatched bracket — Claude silently ignores the whole file. Paste it through a JSON validator before saving, or watch your editor's syntax highlighting; if the file goes red, do not restart yet.
-
-### 6. Install the skill
+Then install the skill:
 
 ```bash
 # macOS / Linux
-mkdir -p ~/.claude/skills
-cp -r skill ~/.claude/skills/company-screen
+mkdir -p ~/.claude/skills && cp -r skill ~/.claude/skills/company-screen
 ```
 
 ```powershell
-# Windows PowerShell — mkdir -p and cp -r are POSIX and will not run here
+# Windows PowerShell
 New-Item -ItemType Directory -Force "$HOME\.claude\skills" | Out-Null
 Copy-Item -Recurse -Force .\skill "$HOME\.claude\skills\company-screen"
 ```
 
-The directory creation is not decorative: `cp` fails with "No such file or
-directory" if `~/.claude/skills/` does not exist yet, which it will not on a
-machine where the Claude client has never loaded a skill.
+Note that Cowork sessions do **not** read `~/.claude/skills/` — for that surface,
+enable the skill for the claude.ai account via **Customize** in the Desktop sidebar.
+`doctor.py` accepts either shape.
 
-### 7. Confirm it works for the analyst
-
-Have them say: **"Screen Beyond Meat for the deal team"** — or any ticker or company name. There is no command to remember; the skill triggers on the request itself, so "size up Dollar General" or "pull the financials on TGT" work equally well.
-
-**How to confirm it worked.** Two tells:
-
-1. `[S1]`-style source markers on every figure in the memo
-2. A Sources table at the bottom mapping each marker to a filing accession and URL
-
-> **Figures without source markers mean the skill is not being used.** Claude answered from its own knowledge rather than calling the tools, and those numbers trace to nothing. Re-check step 6 and confirm the client was restarted after step 5.
-
-If the analyst names an ambiguous company — "Delta", "American" — the skill returns candidates and asks which they mean rather than guessing. That is intended behaviour, not a failure.
+</details>
 
 ### If something goes wrong
 
@@ -250,9 +262,9 @@ If the analyst names an ambiguous company — "Delta", "American" — the skill 
 | Config disappeared after edit | The file got overwritten instead of merged — restore, then add the `mcpServers` key alongside the other keys rather than replacing them |
 | Client reports the server failed to start | `command` does not resolve — use the absolute path to `.venv/bin/edgar-mcp` |
 | **Tools unavailable in the client, but `doctor.py` passes** | The server is installed and no client references it — check the client config, not the package. `doctor.py` check 11 names which surfaces are wired |
-| **Server works but the skill never fires** | Surface mismatch: the MCP server and the skill are on different clients. Re-read the matrix in step 5 and complete both cells of *one* row |
+| **Server works but the skill never fires** | Surface mismatch: the MCP server and the skill are on different clients. Install the plugin instead, which bundles both halves. If you must register by hand, see the surface matrix in the fallback section and complete both cells of *one* row |
 | Skill never triggers, answers come without citations | `skill/` not copied to the right directory for your surface, the directory creation was skipped so the copy failed, or the client was not restarted |
-| `claude: command not found` when trying `claude mcp add` | The standalone CLI is not installed. Use the `~/.claude.json` user-scope route in step 5 instead |
+| `claude: command not found` when trying `claude mcp add` | The standalone CLI is not installed. Use `/plugin install` from within Claude Code, or the `~/.claude.json` user-scope route in the fallback section |
 | `pip install -e .` fails with a metadata or build error | pip older than 21.3 — run `python -m pip install --upgrade pip` inside the venv first |
 | **Windows: reinstall fails with `WinError 32`, file in use** | The Claude client is running and holding `edgar-mcp.exe` open. **Quit the client first.** pip uninstalls before it fails, so a blocked reinstall leaves no working package and sometimes a stray `~orthbridge-diligence` directory in `site-packages` — delete that, then reinstall with the client closed |
 
