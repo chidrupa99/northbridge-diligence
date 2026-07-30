@@ -101,6 +101,39 @@ Step 0 matters: `doctor.py` deliberately runs on **any** Python version, so a to
 > running. An `mcpServers` key added to a live config was observed vanishing
 > within two minutes. Quit the app fully, edit, save, then reopen.
 
+### Recommended: install as a plugin
+
+The matrix above exists because the tool has two halves that go to different
+places, and getting them onto different surfaces is the most common install
+failure. A plugin removes the possibility rather than warning about it — the
+skill and the MCP server config ship as one unit, so **there is no way to install
+half of it.**
+
+```bash
+/plugin marketplace add /absolute/path/to/northbridge-diligence
+/plugin install northbridge-diligence
+```
+
+That is the whole install. `doctor.py` recognises it and reports
+`wired: Plugin (bundled)`.
+
+Two things it does not fix, stated plainly:
+
+- **The bundled `.mcp.json` hardcodes a POSIX venv path**
+  (`${CLAUDE_PLUGIN_ROOT}/../.venv/bin/edgar-mcp`), correct when the plugin sits
+  inside the cloned repo. On Windows change it to `../.venv/Scripts/edgar-mcp.exe`.
+  A single config cannot cover both platforms — there is no conditional syntax and
+  the interpreter path differs.
+- **`EDGAR_USER_AGENT` is passed through from the environment**, so it has to be
+  set somewhere a GUI-launched client can see — a shell profile, not just the
+  terminal you installed from. Or replace the placeholder with the literal string.
+
+Validated against Claude Code **2.1.91**. The manifest deliberately omits
+`displayName` and `$schema`: both are documented fields, and both are hard errors
+on that version. See [`plugin/README.md`](plugin/README.md).
+
+The hand-install path below still works and is still supported.
+
 The MCP server block, in whichever config your row names. **Add** it to what is already in that file rather than replacing the file — on a fresh install the `mcpServers` key is often absent entirely and has to be created alongside the existing keys:
 
 ```jsonc
