@@ -13,7 +13,7 @@ Trust is enforced structurally, not by asking the model nicely. Three things are
 
 1. **Every figure carries its filing** — accession number, form type, period end, XBRL tag, and a resolvable EDGAR URL.
 2. **The code computes; the model narrates.** Ratios, the judgment of whether a ratio is *meaningful*, and the risk flags are all produced in Python against fixed thresholds. The skill is forbidden from doing arithmetic or inventing a flag.
-3. **The behaviour is pinned by tests** — 80 offline tests plus a golden-set regression, so a tag-mapping tweak that would silently change a margin fails the build instead.
+3. **The behaviour is pinned by tests** — 146 offline tests plus a golden-set regression, so a tag-mapping tweak that would silently change a margin fails the build instead.
 
 ---
 
@@ -314,7 +314,7 @@ These are the cases that separate a working screen from a demo. Each is covered 
 
 ## Tests
 
-80 offline tests plus a golden-set regression, in about a second. Three things about them are deliberate:
+146 offline tests plus a golden-set regression, in about a second. Three things about them are deliberate:
 
 **Recorded fixtures, not hand-written mocks.** Real EDGAR responses for two filers chosen for what they break. Beyond Meat gives negative equity, negative EBITDA and positive net income on a loss-making operating business; Target gives a January fiscal year end, a mid-history tag switch, and an abandoned `GrossProfit`. Hand-written mocks never invent a January-FYE retailer that stops tagging gross profit — real filings do, which is the point.
 

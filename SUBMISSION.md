@@ -32,8 +32,8 @@ Each is provided as Markdown and as a self-contained HTML one-pager.
 
 | | |
 |---|---|
-| [`tests/`](tests/) | 80 offline tests plus a golden-set regression, ~1s, no network. Named after the failure modes they prevent |
-| [`scripts/doctor.py`](scripts/doctor.py) | Install verification — 10 live checks, each printing its own fix |
+| [`tests/`](tests/) | 146 offline tests plus a golden-set regression, ~1s, no network. Named after the failure modes they prevent |
+| [`scripts/doctor.py`](scripts/doctor.py) | Install verification — 11 live checks, each printing its own fix |
 | [`DEVELOPING.md`](DEVELOPING.md) | Engineer handoff: test harness, fixtures, tuning knobs, 11 invariants, gotchas |
 | [`DEPLOYMENT.md`](DEPLOYMENT.md) | Client-side install: security posture, egress requirements, troubleshooting |
 | [`docs/PRD.md`](docs/PRD.md) | Product framing: problem, requirements, roadmap |

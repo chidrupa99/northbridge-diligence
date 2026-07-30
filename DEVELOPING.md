@@ -47,7 +47,7 @@ skill/SKILL.md              The company-screen skill. Frontmatter name and
                             description must stay within 64/1024 characters
                             (currently 14/670) or the skill silently fails to load.
 scripts/doctor.py           Install verification. Live calls, not fixtures.
-tests/                      78 unit tests + 2 golden-set cases. Offline, ~1s.
+tests/                      144 unit tests + 2 golden-set cases. Offline, ~1s.
 samples/                    Two worked memos (BYND, TGT) in .md and .html.
 README.md                   Reviewer-facing. Design decisions, seams.
 DEPLOYMENT.md               Client-side install.
@@ -77,7 +77,7 @@ python -m pip install --upgrade pip          # editable installs need pip >= 21.
 pip install -e ".[dev]"                      # runtime + test deps
 export EDGAR_USER_AGENT="Your Name you@example.com"
 
-python -m pytest             # 80 tests, offline, ~1s
+python -m pytest             # 146 tests, offline, ~1s
 python scripts/doctor.py     # live checks against real EDGAR
 ```
 
@@ -206,7 +206,7 @@ Break these and the tool loses the argument it is built to make.
 ## Tests
 
 ```bash
-python -m pytest -q          # 80 pass, offline, ~1s
+python -m pytest -q          # 146 pass, offline, ~1s
 ```
 
 Fully offline against recorded fixtures. `conftest.py` monkeypatches `ec._get`
