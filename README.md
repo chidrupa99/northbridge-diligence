@@ -81,9 +81,14 @@ Step 0 matters: `doctor.py` deliberately runs on **any** Python version, so a to
 
 | Surface | MCP server config | Skill location | Works? |
 |---|---|---|---|
-| **Claude Code** | `~/.claude.json` → top-level `mcpServers` key (user scope, all projects) · or `claude mcp add …` if the CLI is installed · or a project-level `.mcp.json` | `~/.claude/skills/company-screen` | **Yes** |
-| **Claude Desktop** | `%APPDATA%\Claude\claude_desktop_config.json` (Windows) · `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) — or Settings → Developer → Edit Config | *Not verified by this repo — see note* | Server: **yes** |
-| **claude.ai web / mobile** | Not possible — stdio is local-only | — | **No** |
+| **Claude Code** — the CLI, or a Code session launched inside the Desktop app | `~/.claude.json` → top-level `mcpServers` (user scope, every project) · or `claude mcp add …` if the CLI is on PATH · or a project-level `.mcp.json` (that folder only) | `~/.claude/skills/company-screen` | **Yes** |
+| **Claude Desktop — Cowork / chat sessions** | `%APPDATA%\Claude\claude_desktop_config.json` (Windows) · `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) · or Settings → Developer → Edit Config | **Not `~/.claude/skills/`.** Cowork sessions do not read that directory — enable the skill for your claude.ai account via **Customize** in the Desktop sidebar | **Yes**, both halves — but the skill comes from account sync, not the filesystem |
+| **claude.ai web / mobile** | Not possible — `edgar-mcp` speaks stdio and runs as a local child process; a cloud process cannot spawn a binary on your machine. Would need a remote HTTP/SSE server as a Custom Connector, which this repo does not build | Account-synced skills do load here | **No** — the skill triggers but its tools are unreachable |
+
+> [!NOTE]
+> **"Claude Desktop" is two surfaces, and this is what most installs get wrong.** Per the [Claude Code skills docs](https://code.claude.com/docs/en/skills): *"Cowork sessions and cloud sessions… don't read `~/.claude/skills/` on your machine. Both interactive and scheduled Cowork sessions load the skills enabled for your claude.ai account."* A Claude Code session in the Desktop app **does** read the local directory; a Cowork chat session in the same app does **not**. Desktop scheduled tasks run locally and behave like any local session.
+>
+> The claude.ai row is the trap worth knowing: you can enable the skill for your account there and it will trigger, but the MCP server is not reachable, so it has no data. The skill's "no figure without a citation" rule should make that fail visibly rather than invent numbers — but you will see a skill that looks installed and produces nothing.
 
 The MCP server block, in whichever config your row names. **Add** it to what is already in that file rather than replacing the file — on a fresh install the `mcpServers` key is often absent entirely and has to be created alongside the existing keys:
 
@@ -118,9 +123,6 @@ Copy-Item -Recurse -Force .\skill "$HOME\.claude\skills\company-screen"
 ```
 
 Then **restart the client** — configs are read at launch only. Re-run `python scripts/doctor.py`; check 11 reads the client config files on disk and reports which surfaces are actually wired.
-
-> [!NOTE]
-> `~/.claude/skills/` is confirmed to work for **Claude Code**. Where Claude Desktop loads skills from was not verified while building this, so that cell is left open rather than guessed at — consult current Anthropic docs. If you are using Desktop and the server works but the skill never fires, that unverified cell is the first place to look.
 
 `edgar-mcp` is a console script `pip install` puts on the virtualenv's PATH, so the config points at a command rather than a file inside the source tree. Two things that catch people out: **use the absolute path** — the client does not inherit an activated venv, so an unqualified `edgar-mcp` will not resolve — and **never run it yourself**. It speaks MCP over stdio, so it waits silently on standard input and looks hung when it is working correctly. The client starts it.
 
