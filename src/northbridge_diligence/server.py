@@ -27,23 +27,41 @@ try:                                          # SDK >= 2.0
 except ImportError:                           # SDK 1.x
     from mcp.server.fastmcp import FastMCP as _Server
 
+from . import __version__
 from . import edgar_client as ec
 
-mcp = _Server("northbridge-diligence")
+# Version is wired through so the stdio `initialize` handshake reports something.
+# It returned an empty string before, which tells a client nothing about which
+# build it is talking to — unhelpful the moment two versions exist in the wild.
+mcp = _Server("northbridge-diligence", version=__version__)
 
 
 def _safe(fn, *args, **kwargs) -> dict:
-    """Uniform error envelope so a bad ticker never crashes the model's turn."""
+    """Uniform error envelope so a bad ticker never crashes the model's turn.
+
+    Deliberately thin. Which code, which category and whether the call is worth
+    retrying are all decided by the exception classes in `edgar_client`, so the
+    taxonomy is testable without a protocol harness and available to anything
+    calling the client directly. This function only serialises what it is given.
+    """
     try:
         return fn(*args, **kwargs)
-    except ec.AmbiguousCompany as exc:
-        # Every tool disambiguates the same way resolve_company does, so the
-        # model never sees two different shapes for the same situation.
-        return {**exc.payload, "error": str(exc), "recoverable": True}
     except ec.EdgarError as exc:
-        return {"error": str(exc), "recoverable": True}
+        # Covers AmbiguousCompany too — its envelope() merges the candidate list
+        # in, so every tool disambiguates exactly as resolve_company does and the
+        # model never sees two shapes for one situation.
+        return exc.envelope()
     except Exception as exc:  # unexpected — surface, don't swallow silently
-        return {"error": f"Unexpected error: {exc}", "recoverable": False}
+        # The one case where the model should NOT continue: an internal fault
+        # means we do not know what happened, and narrating around that is how
+        # an invented number reaches a memo.
+        return {
+            "error": f"Unexpected error: {exc}",
+            "recoverable": False,
+            "code": "INTERNAL",
+            "category": "internal",
+            "retryable": False,
+        }
 
 
 @mcp.tool()

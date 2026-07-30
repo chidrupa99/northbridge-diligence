@@ -88,7 +88,113 @@ STATS = {"requests": 0, "cache_hits": 0, "retries": 0}
 
 
 class EdgarError(Exception):
-    """Raised for expected, user-facing failures (bad ticker, no data, etc.)."""
+    """Base class for expected, user-facing failures.
+
+    Every error carries a machine-readable taxonomy, because a model deciding
+    what to do next needs more than prose. The distinction that matters most:
+
+      * ``recoverable`` — "the model can continue its turn". True for anything a
+        model can narrate around, which is nearly everything: a bad ticker means
+        ask the user, a data gap means report the gap. False only for genuine
+        internal faults, where continuing would mean inventing something.
+      * ``retryable`` — "issuing this exact call again may succeed". True only
+        for transient conditions: rate limits, upstream 5xx, network blips.
+
+    Those two are independent and both useful. A 404 on a bad ticker is
+    recoverable (ask the user which company they meant) but not retryable
+    (calling again returns the same 404). A 429 is both. Collapsing them, which
+    the first version of this envelope did by hardcoding ``recoverable: True``,
+    left the model unable to tell a permanent failure from a transient one.
+
+    Subclasses set ``code`` and the taxonomy; ``retry_after_seconds`` is filled
+    in from EDGAR's ``Retry-After`` header when the upstream sends one.
+    """
+
+    code: str = "INTERNAL"
+    category: str = "internal"
+    retryable: bool = False
+    recoverable: bool = True
+
+    def __init__(self, message: str, *, retry_after_seconds: float | None = None,
+                 **extra: Any):
+        super().__init__(message)
+        self.retry_after_seconds = retry_after_seconds
+        self.extra = extra
+
+    def envelope(self) -> dict:
+        """The dict a tool returns for this error.
+
+        ``error`` and ``recoverable`` are kept exactly as the original envelope
+        had them: SKILL.md instructs the model on that shape and the golden
+        snapshots capture it, so the new fields are additive.
+        """
+        payload = {
+            "error": str(self),
+            "recoverable": self.recoverable,
+            "code": self.code,
+            "category": self.category,
+            "retryable": self.retryable,
+        }
+        if self.retry_after_seconds is not None:
+            payload["retry_after_seconds"] = self.retry_after_seconds
+        payload.update(self.extra)
+        return payload
+
+
+class InvalidArgument(EdgarError):
+    """Caller passed something the tool cannot act on (bad years, bad limit)."""
+
+    code = "INVALID_ARGUMENT"
+    category = "client_error"
+
+
+class CompanyNotFound(EdgarError):
+    """No SEC registrant matches the query. Permanent for this query."""
+
+    code = "COMPANY_NOT_FOUND"
+    category = "client_error"
+
+
+class InvalidTag(EdgarError):
+    """A malformed or non-existent XBRL tag was requested."""
+
+    code = "INVALID_TAG"
+    category = "client_error"
+
+
+class NoXBRLData(EdgarError):
+    """The filer exists but reports no usable US-GAAP XBRL facts.
+
+    A data gap rather than a client error: the request was well-formed and
+    EDGAR answered honestly. Foreign private issuers filing 20-F under IFRS are
+    the common case.
+    """
+
+    code = "NO_XBRL_DATA"
+    category = "data_gap"
+
+
+class SectionNotFound(EdgarError):
+    """A filing section could not be isolated from the document."""
+
+    code = "SECTION_NOT_FOUND"
+    category = "data_gap"
+
+
+class RateLimited(EdgarError):
+    """SEC is throttling us. Transient by definition."""
+
+    code = "RATE_LIMITED"
+    category = "upstream_error"
+    retryable = True
+
+
+class UpstreamUnavailable(EdgarError):
+    """EDGAR failed in a way that may not recur: 5xx, timeout, connection reset."""
+
+    code = "UPSTREAM_UNAVAILABLE"
+    category = "upstream_error"
+    retryable = True
 
 
 # --------------------------------------------------------------------------- #
@@ -141,9 +247,24 @@ def _throttle() -> None:
         _last_call[0] = time.monotonic()
 
 
+def _retry_after(resp: requests.Response) -> float | None:
+    """Parse EDGAR's Retry-After header, if it sent one.
+
+    Worth surfacing rather than only sleeping on: once retries here are
+    exhausted, the caller is told how long to wait before trying again instead
+    of having to guess.
+    """
+    raw = (resp.headers.get("Retry-After") or "").strip()
+    try:
+        return float(raw) if raw else None
+    except ValueError:
+        return None  # HTTP-date form; we do not parse it, we just do not claim one
+
+
 def _get(url: str) -> requests.Response:
     """GET with fair-access throttling and backoff on transient failures."""
     delay = 0.5
+    last_retry_after: float | None = None
     for attempt in range(_MAX_RETRIES + 1):
         _throttle()
         STATS["requests"] += 1
@@ -156,29 +277,42 @@ def _get(url: str) -> requests.Response:
                 time.sleep(delay)
                 delay *= 2
                 continue
-            raise EdgarError(f"Network error contacting EDGAR ({url}): {exc}") from exc
+            raise UpstreamUnavailable(
+                f"Network error contacting EDGAR ({url}): {exc}"
+            ) from exc
 
         if resp.status_code == 200:
             return resp
         if resp.status_code == 403:
-            raise EdgarError(
+            # Not retryable: the header is wrong and will stay wrong until a
+            # human fixes it. Retrying would just hammer EDGAR over our own bug.
+            raise InvalidArgument(
                 "EDGAR returned 403 Forbidden. Set a descriptive EDGAR_USER_AGENT "
                 "with contact info (SEC fair-access policy requires it)."
             )
         if resp.status_code == 404:
-            raise EdgarError(f"EDGAR resource not found (404): {url}")
+            raise CompanyNotFound(f"EDGAR resource not found (404): {url}")
         # 429 / 5xx are transient — back off and retry.
-        if resp.status_code in (429, 500, 502, 503, 504) and attempt < _MAX_RETRIES:
-            STATS["retries"] += 1
-            retry_after = resp.headers.get("Retry-After")
-            sleep_for = float(retry_after) if (retry_after or "").isdigit() else delay
-            log.warning("EDGAR %s on %s — retrying in %.1fs",
-                        resp.status_code, url, sleep_for)
-            time.sleep(sleep_for)
-            delay *= 2
-            continue
-        raise EdgarError(f"EDGAR returned HTTP {resp.status_code} for {url}")
-    raise EdgarError(f"EDGAR request failed after retries: {url}")
+        if resp.status_code in (429, 500, 502, 503, 504):
+            last_retry_after = _retry_after(resp) or last_retry_after
+            if attempt < _MAX_RETRIES:
+                STATS["retries"] += 1
+                sleep_for = last_retry_after if last_retry_after else delay
+                log.warning("EDGAR %s on %s — retrying in %.1fs",
+                            resp.status_code, url, sleep_for)
+                time.sleep(sleep_for)
+                delay *= 2
+                continue
+            # Retries exhausted. Distinguish throttling from a server fault so
+            # the caller knows whether backing off further is likely to help.
+            error = RateLimited if resp.status_code == 429 else UpstreamUnavailable
+            raise error(
+                f"EDGAR returned HTTP {resp.status_code} for {url} after "
+                f"{_MAX_RETRIES + 1} attempts.",
+                retry_after_seconds=last_retry_after,
+            )
+        raise UpstreamUnavailable(f"EDGAR returned HTTP {resp.status_code} for {url}")
+    raise UpstreamUnavailable(f"EDGAR request failed after retries: {url}")
 
 
 def _get_json(url: str) -> dict:
@@ -278,7 +412,7 @@ def resolve_company(query: str, max_candidates: int = 5) -> dict:
             wrong company.
     """
     if not query or not query.strip():
-        raise EdgarError("Empty company query.")
+        raise InvalidArgument("Empty company query.")
     q = query.strip()
     rows = _load_ticker_map()
 
@@ -304,7 +438,7 @@ def resolve_company(query: str, max_candidates: int = 5) -> dict:
             "note": f"{len(partial)} companies matched '{query}'. "
                     "Pass a ticker or exact name to disambiguate.",
         }
-    raise EdgarError(
+    raise CompanyNotFound(
         f"No SEC-registered company matched '{query}'. "
         "Note: EDGAR only covers SEC filers (public/registered companies)."
     )
@@ -315,11 +449,22 @@ class AmbiguousCompany(EdgarError):
 
     Carries the candidate list so the server layer can hand the model the same
     disambiguation payload `resolve_company` returns — the two paths agree.
+
+    Not retryable: the same query returns the same ambiguity every time. It is
+    resolved by the user picking a candidate, not by calling again.
     """
+
+    code = "AMBIGUOUS_COMPANY"
+    category = "client_error"
 
     def __init__(self, payload: dict):
         self.payload = payload
         super().__init__(payload.get("note", "Ambiguous company name."))
+
+    def envelope(self) -> dict:
+        # Candidates first, so the model reads the choice it has to offer the
+        # user before the error framing around it.
+        return {**self.payload, **super().envelope()}
 
 
 def _resolve_cik(query: str) -> dict:
@@ -612,7 +757,7 @@ def get_financial_concept(query: str, metric_or_tag: str, years: int = 6) -> dic
     candidates = CONCEPT_MAP.get(metric_or_tag)
     if candidates is None:
         if not _TAG_RE.match(metric_or_tag):
-            raise EdgarError(
+            raise InvalidTag(
                 f"'{metric_or_tag}' is neither a known metric name "
                 f"({', '.join(sorted(CONCEPT_MAP))}) nor a valid US-GAAP tag."
             )
@@ -695,7 +840,7 @@ def get_key_financials(query: str, years: int = 5) -> dict:
     """
     comp, series_map, tags_used, reference_fy, _full = _all_line_items(query, years)
     if not any(series_map.values()):
-        raise EdgarError(
+        raise NoXBRLData(
             f"No XBRL financial data found for {comp['name']} "
             f"(CIK {comp['cik']}). Foreign or non-standard filers (20-F / IFRS) "
             "may not report US-GAAP XBRL facts."
@@ -915,7 +1060,7 @@ def compute_screening_metrics(query: str, years: int = 5) -> dict:
     """
     comp, s, tags_used, reference_fy, full = _all_line_items(query, years)
     if not any(s.values()) or reference_fy is None:
-        raise EdgarError(
+        raise NoXBRLData(
             f"No XBRL financial data found for {comp['name']} (CIK {comp['cik']})."
         )
 
@@ -1470,7 +1615,7 @@ def _find_section_span(text: str, start_pat: str, end_pat: str
 def extract_section(text: str, section: str = "risk_factors") -> Optional[str]:
     """Pure-text section extraction, split out so it is unit-testable."""
     if section not in SECTION_PATTERNS:
-        raise EdgarError(
+        raise InvalidArgument(
             f"Unknown section {section!r}. Known: {', '.join(sorted(SECTION_PATTERNS))}."
         )
     text = re.sub(r"[ \t\xa0]+", " ", text)
@@ -1502,7 +1647,9 @@ def get_risk_factors(query: str, max_chars: int = 12000) -> dict:
     comp = _resolve_cik(query)
     k = _find_latest_10k(comp)
     if not k:
-        raise EdgarError(f"No 10-K on file for {comp['name']} (CIK {comp['cik']}).")
+        raise SectionNotFound(
+            f"No 10-K on file for {comp['name']} (CIK {comp['cik']})."
+        )
     url = _document_url(comp["cik"], k["accession"], k["primary_document"])
     soup = BeautifulSoup(_get(url).text, "lxml")
     section = extract_item_1a(soup.get_text("\n"), max_chars)

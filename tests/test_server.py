@@ -15,6 +15,7 @@ import asyncio
 
 import pytest
 
+from northbridge_diligence import edgar_client as ec
 from northbridge_diligence import server
 
 
@@ -95,3 +96,104 @@ class TestErrorEnvelope:
         result = server._safe(boom)
         assert result["recoverable"] is False
         assert "something nobody planned for" in result["error"]
+
+
+# --------------------------------------------------------------------------- #
+# Error taxonomy
+#
+# The envelope used to be {"error": str, "recoverable": True} for every
+# EdgarError, so a 404 on a bad ticker and a 429 rate limit were indistinguishable
+# to the model. It could not tell "this will never work" from "try again in a
+# moment". These tests pin the two axes apart.
+# --------------------------------------------------------------------------- #
+
+TAXONOMY = [
+    # exception,                      code,                 category,         retryable
+    (ec.InvalidArgument,              "INVALID_ARGUMENT",   "client_error",   False),
+    (ec.CompanyNotFound,              "COMPANY_NOT_FOUND",  "client_error",   False),
+    (ec.InvalidTag,                   "INVALID_TAG",        "client_error",   False),
+    (ec.NoXBRLData,                   "NO_XBRL_DATA",       "data_gap",       False),
+    (ec.SectionNotFound,              "SECTION_NOT_FOUND",  "data_gap",       False),
+    (ec.RateLimited,                  "RATE_LIMITED",       "upstream_error", True),
+    (ec.UpstreamUnavailable,          "UPSTREAM_UNAVAILABLE", "upstream_error", True),
+]
+
+
+@pytest.mark.parametrize("exc_type,code,category,retryable", TAXONOMY)
+def test_each_error_type_maps_to_its_own_code(exc_type, code, category, retryable):
+    envelope = server._safe(lambda: (_ for _ in ()).throw(exc_type("boom")))
+    assert envelope["code"] == code
+    assert envelope["category"] == category
+    assert envelope["retryable"] is retryable
+
+
+def test_transient_and_permanent_failures_are_distinguishable():
+    """The whole point. A rate limit and a bad ticker must not look alike."""
+    transient = server._safe(lambda: (_ for _ in ()).throw(ec.RateLimited("429")))
+    permanent = server._safe(lambda: (_ for _ in ()).throw(ec.CompanyNotFound("404")))
+    assert transient["retryable"] is True
+    assert permanent["retryable"] is False
+    assert transient["category"] != permanent["category"]
+
+
+def test_recoverable_and_retryable_are_independent_axes():
+    """A bad ticker is recoverable but not retryable; that pairing must survive.
+
+    `recoverable` means the model can continue its turn. `retryable` means the
+    same call may succeed later. Collapsing them was the original defect.
+    """
+    envelope = server._safe(lambda: (_ for _ in ()).throw(ec.CompanyNotFound("nope")))
+    assert envelope["recoverable"] is True
+    assert envelope["retryable"] is False
+
+
+def test_internal_faults_are_the_only_non_recoverable_case():
+    # An unexpected exception means we do not know what happened. Narrating
+    # around that is how an invented figure reaches a memo.
+    envelope = server._safe(lambda: (_ for _ in ()).throw(ValueError("unplanned")))
+    assert envelope["recoverable"] is False
+    assert envelope["code"] == "INTERNAL"
+    assert envelope["category"] == "internal"
+
+
+def test_retry_after_is_surfaced_when_edgar_sends_one():
+    # _get() honoured Retry-After internally and then discarded it, so a caller
+    # that exhausted retries had to guess how long to wait.
+    envelope = server._safe(
+        lambda: (_ for _ in ()).throw(ec.RateLimited("429", retry_after_seconds=30.0))
+    )
+    assert envelope["retry_after_seconds"] == 30.0
+
+
+def test_retry_after_is_absent_rather_than_null_when_not_sent():
+    envelope = server._safe(lambda: (_ for _ in ()).throw(ec.RateLimited("429")))
+    assert "retry_after_seconds" not in envelope
+
+
+class TestBackwardCompatibility:
+    """SKILL.md documents the old shape and the goldens snapshot it."""
+
+    def test_error_and_recoverable_keys_are_unchanged(self):
+        envelope = server._safe(lambda: (_ for _ in ()).throw(ec.CompanyNotFound("x")))
+        assert envelope["error"] == "x"
+        assert isinstance(envelope["recoverable"], bool)
+
+    def test_ambiguity_still_carries_its_candidate_payload(self):
+        payload = {"ambiguous": True, "candidates": [{"ticker": "BAC"}], "note": "pick one"}
+        envelope = server._safe(
+            lambda: (_ for _ in ()).throw(ec.AmbiguousCompany(payload))
+        )
+        assert envelope["ambiguous"] is True
+        assert envelope["candidates"] == [{"ticker": "BAC"}]
+        # ...and now also carries the taxonomy.
+        assert envelope["code"] == "AMBIGUOUS_COMPANY"
+        assert envelope["retryable"] is False
+
+
+class TestVersionHandshake:
+    def test_server_reports_a_non_empty_version(self):
+        # The stdio initialize handshake returned version "" before this was
+        # wired, so a client could not tell which build it was talking to.
+        from northbridge_diligence import __version__
+        assert __version__
+        assert server.mcp.version == __version__
