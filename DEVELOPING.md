@@ -277,6 +277,47 @@ set is item 5 in the README roadmap for that reason.
 
 ---
 
+## Output schemas: measured, then declined
+
+MCP 2.0 supports `outputSchema`, the tool returns are richly structured, and none
+of them declare one. That is a deliberate call rather than an omission, and it is
+worth recording the measurement behind it because the obvious objection —
+"the shape is probably too variable" — turns out to be wrong.
+
+**The shape is stable.** Across the two fixture filers, `compute_screening_metrics`
+returns identical top-level keys and an identical metric set, including for a bank-
+shaped filer with a completely different balance sheet. What varies is which
+metrics carry `meaningful: false`, not which keys exist. So a schema is feasible.
+
+Three reasons not to, in descending weight:
+
+1. **Every tool can return an error envelope instead of its success shape.** Any
+   honest `outputSchema` is therefore a union, and the error branch is the more
+   likely response in exactly the situations where validation would matter. A
+   client validating strictly against the success shape would reject a
+   well-formed, deliberately-designed error.
+2. **A hand-written schema is a second description of the same fact** — free to
+   disagree with the code that builds the dict. That is the identical hazard the
+   resources in `server.py` are generated to avoid, and it would be inconsistent
+   to accept it here after rejecting it there. Generating a schema from observed
+   output would over-constrain: it would mark `absent_line_items` as always
+   present, when its absence is meaningful.
+3. **The tests already assert the shape more precisely than a schema could** —
+   that inputs are `SourcedValue`s, that point-in-time metrics never mix fiscal
+   years, that absence agrees across two code paths. A schema checks types; those
+   check meaning.
+
+**What would change the decision:** an SDK that lets a tool declare success and
+error variants separately, or a schema generated from the same code that builds
+the response rather than transcribed alongside it. Until one exists, a declared
+schema would buy type-checking already covered and add a drift risk this codebase
+has otherwise designed out.
+
+A test pins the shape stability measured above, so the groundwork is in place if
+that changes.
+
+---
+
 ## The deliverable format: audited, not rendered
 
 The memo is written by the model, and for a while nothing in code checked it. That

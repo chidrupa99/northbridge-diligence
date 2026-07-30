@@ -648,3 +648,31 @@ class TestArgumentValidation:
 
     def test_valid_arguments_still_work(self):
         assert ec.get_key_financials("BYND", years=3)["years_requested"] == 3
+
+
+def test_screen_shape_is_stable_across_filer_types():
+    """Groundwork for a possible outputSchema, and a guard regardless.
+
+    DEVELOPING.md declines to declare an outputSchema, and the reasoning depends
+    on a measurement: the response shape is stable, and only which metrics are
+    `meaningful` varies. If that stops being true the decision should be revisited,
+    so it is pinned rather than assumed.
+
+    BYND and TGT are deliberately dissimilar — a distressed calendar-year filer
+    with negative equity, and a January-FYE retailer that abandoned tags.
+    """
+    bynd = ec.compute_screening_metrics("BYND", years=5)
+    tgt = ec.compute_screening_metrics("TGT", years=5)
+
+    assert set(bynd) == set(tgt), "top-level keys diverged between filers"
+    assert set(bynd["metrics"]) == set(tgt["metrics"]), "metric set diverged"
+
+    # Every metric carries the same envelope regardless of whether it is usable.
+    for screen in (bynd, tgt):
+        for name, metric in screen["metrics"].items():
+            assert {"value", "unit", "meaningful", "inputs"} <= set(metric), name
+
+    # What legitimately varies: which metrics are interpretable.
+    bynd_unusable = {n for n, m in bynd["metrics"].items() if m["meaningful"] is False}
+    assert bynd_unusable, "BYND should have unmeaningful metrics (negative equity)"
+    assert not {n for n, m in tgt["metrics"].items() if m["meaningful"] is False}
