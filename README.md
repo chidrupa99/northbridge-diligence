@@ -47,94 +47,55 @@ The same blob also hands us every prior-year comparative for free — a FY2025 1
 
 ## Setup
 
-**Prerequisites:** Python **3.10 or newer** and a **desktop-class** MCP client — Claude Desktop or Claude Code. Nothing else: SEC EDGAR is public, so there is no account, API key or cost.
+**Prerequisites:** Python **3.10 or newer**, and Claude Code or Claude Desktop. Nothing else — SEC EDGAR is public, so there is no account, API key or cost.
 
-> [!IMPORTANT]
-> **`edgar-mcp` speaks MCP over stdio, which makes it a local child process.** The client launches it on your machine and talks to it over standard input and output. That has one hard consequence: **claude.ai in a browser and the mobile apps cannot reach it at all** — a process running in Anthropic's cloud cannot spawn a binary on your laptop. Serving those surfaces would need a remote HTTP/SSE server registered as a Custom Connector, which this repo does not build.
+### 1. Get the code and install it
 
 ```bash
-# 0. Get the code, and confirm your Python before building anything
-git clone https://github.com/chidrupa99/northbridge-diligence.git && cd northbridge-diligence
-python3 scripts/doctor.py                                       # runs on ANY Python; reports if yours is too old
-
-# 1. Create an isolated environment and install
+git clone https://github.com/chidrupa99/northbridge-diligence.git
+cd northbridge-diligence
+python3 scripts/doctor.py                    # runs on ANY Python; checks yours is >= 3.10 first
 python3 -m venv .venv
 source .venv/bin/activate                    # Windows: .venv\Scripts\activate
 python -m pip install --upgrade pip          # editable installs need pip >= 21.3
 pip install -e .
-
-# 2. Identify yourself to SEC (a contact string, not a credential)
 export EDGAR_USER_AGENT="Your Org you@example.com"    # Windows: set EDGAR_USER_AGENT=...
-
-# 3. Verify what you have so far — the last check will fail until step 5
-python scripts/doctor.py
+python scripts/doctor.py                     # 11 checks; each failure prints its own fix
 ```
 
-> [!NOTE]
-> **Reinstalling later?** Quit the Claude client first. On Windows it holds
-> `edgar-mcp.exe` open, and pip uninstalls before failing — leaving no working
-> install.
+`export` sets an **environment variable** — a value the terminal remembers and passes to programs it launches. SEC returns HTTP 403 to unidentified clients, so this is required. It is a contact string, not a credential.
 
-Step 0 matters: `doctor.py` deliberately runs on **any** Python version, so a too-old interpreter is reported in its first line rather than as a confusing dependency error three steps later. If `python3` on your machine is older than 3.10, look for a newer one (`ls /usr/local/bin/python3.*`, or `brew install python@3.12`) and use that name in step 1.
+### 2. Install the plugin
 
-`export` sets an **environment variable** — a value the terminal remembers for this session and hands to any program launched from it. SEC returns HTTP 403 to unidentified clients, so `doctor.py` needs it. **Your Claude client does not inherit it.** A GUI-launched app gets nothing from your shell, and each client spawns its own copy of the server, so the same value has to be repeated in the client config in step 5.
-
-### 5. Install both halves — on the *same* surface
-
-> [!WARNING]
-> **This is the step that most often goes wrong.** The tool has two halves — the MCP server and the skill — and they are configured in *different places for different clients*. Put the server on one surface and the skill on another and everything reports healthy while the skill never fires. Pick your row and do both cells.
-
-| Surface | MCP server config | Skill location | Works? |
-|---|---|---|---|
-| **Claude Code** — the CLI, or a Code session launched inside the Desktop app | `~/.claude.json` → top-level `mcpServers` (user scope, every project) · or `claude mcp add …` if the CLI is on PATH · or a project-level `.mcp.json` (that folder only) | `~/.claude/skills/company-screen` | **Yes** |
-| **Claude Desktop — Cowork / chat sessions** | `%APPDATA%\Claude\claude_desktop_config.json` (Windows) · `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) · or Settings → Developer → Edit Config | **Not `~/.claude/skills/`.** Cowork sessions do not read that directory — enable the skill for your claude.ai account via **Customize** in the Desktop sidebar | **Yes**, both halves — but the skill comes from account sync, not the filesystem |
-| **claude.ai web / mobile** | Not possible — `edgar-mcp` speaks stdio and runs as a local child process; a cloud process cannot spawn a binary on your machine. Would need a remote HTTP/SSE server as a Custom Connector, which this repo does not build | Account-synced skills do load here | **No** — the skill triggers but its tools are unreachable |
-
-> [!NOTE]
-> **"Claude Desktop" is two surfaces, and this is what most installs get wrong.** Per the [Claude Code skills docs](https://code.claude.com/docs/en/skills): *"Cowork sessions and cloud sessions… don't read `~/.claude/skills/` on your machine. Both interactive and scheduled Cowork sessions load the skills enabled for your claude.ai account."* A Claude Code session in the Desktop app **does** read the local directory; a Cowork chat session in the same app does **not**. Desktop scheduled tasks run locally and behave like any local session.
->
-> The claude.ai row is the trap worth knowing: you can enable the skill for your account there and it will trigger, but the MCP server is not reachable, so it has no data. The skill's "no figure without a citation" rule should make that fail visibly rather than invent numbers — but you will see a skill that looks installed and produces nothing.
-
-> [!CAUTION]
-> **Quit the Claude client before editing its config.** Claude Desktop holds the
-> config in memory and flushes its own `preferences` back over the file while
-> running. An `mcpServers` key added to a live config was observed vanishing
-> within two minutes. Quit the app fully, edit, save, then reopen.
-
-### Recommended: install as a plugin
-
-The matrix above exists because the tool has two halves that go to different
-places, and getting them onto different surfaces is the most common install
-failure. A plugin removes the possibility rather than warning about it — the
-skill and the MCP server config ship as one unit, so **there is no way to install
-half of it.**
-
-```bash
+```
 /plugin marketplace add /absolute/path/to/northbridge-diligence
 /plugin install northbridge-diligence
 ```
 
-That is the whole install. `doctor.py` recognises it and reports
-`wired: Plugin (bundled)`.
+Restart, and that is the install. The plugin ships the MCP server config **and** the skill together, so the two cannot end up on different Claude surfaces — which is the most common way this tool gets installed wrong.
 
-Two things it does not fix, stated plainly:
+Confirm with `python scripts/doctor.py`: check 11 reports `wired: Plugin (bundled)`.
 
-- **The bundled `.mcp.json` hardcodes a POSIX venv path**
-  (`${CLAUDE_PLUGIN_ROOT}/../.venv/bin/edgar-mcp`), correct when the plugin sits
-  inside the cloned repo. On Windows change it to `../.venv/Scripts/edgar-mcp.exe`.
-  A single config cannot cover both platforms — there is no conditional syntax and
-  the interpreter path differs.
-- **`EDGAR_USER_AGENT` is passed through from the environment**, so it has to be
-  set somewhere a GUI-launched client can see — a shell profile, not just the
-  terminal you installed from. Or replace the placeholder with the literal string.
+> [!NOTE]
+> **On Windows**, edit one line in `plugin/.mcp.json` before installing: change the command to `${CLAUDE_PLUGIN_ROOT}/../.venv/Scripts/edgar-mcp.exe`. A single bundled config cannot cover both platforms — the interpreter path differs and there is no conditional syntax.
 
-Validated against Claude Code **2.1.91**. The manifest deliberately omits
-`displayName` and `$schema`: both are documented fields, and both are hard errors
-on that version. See [`plugin/README.md`](plugin/README.md).
+### 3. Use it
 
-The hand-install path below still works and is still supported.
+Say: ***"Screen Beyond Meat for the deal team"***. See [Triggering the skill](#triggering-the-skill) for what else fires it and how to tell it worked.
 
-The MCP server block, in whichever config your row names. **Add** it to what is already in that file rather than replacing the file — on a fresh install the `mcpServers` key is often absent entirely and has to be created alongside the existing keys:
+---
+
+<details>
+<summary><b>Not using Claude Code?</b> — Claude Desktop chat and claude.ai need a different route</summary>
+
+Plugins are a Claude Code feature. Two other cases:
+
+**Claude Desktop chat (Cowork).** Register the server by hand in
+`%APPDATA%\Claude\claude_desktop_config.json` (Windows) or
+`~/Library/Application Support/Claude/claude_desktop_config.json` (macOS), or via
+Settings → Developer → Edit Config. **Quit the app first** — it flushes its own
+preferences over your edit while running, and an added `mcpServers` key was
+observed vanishing within two minutes.
 
 ```jsonc
 {
@@ -147,30 +108,34 @@ The MCP server block, in whichever config your row names. **Add** it to what is 
 }
 ```
 
-On Windows the command is `...\.venv\Scripts\edgar-mcp.exe`. Print the exact path to paste, with the virtualenv active:
+Print the exact command path with `python -c "import shutil; print(shutil.which('edgar-mcp'))"`.
+
+For the skill: Cowork sessions do **not** read `~/.claude/skills/`. Enable it for
+your claude.ai account via **Customize** in the Desktop sidebar.
+
+**claude.ai web and mobile.** Not possible. `edgar-mcp` speaks MCP over stdio, so
+the client launches it as a local child process — a process in Anthropic's cloud
+cannot spawn a binary on your laptop. An account-synced skill will still *trigger*
+there, but its tools are unreachable, which looks installed and produces nothing.
+Serving those surfaces needs a remote HTTP/SSE server as a Custom Connector, which
+this repo does not build.
+
+**Hand-installing the skill for Claude Code**, if you would rather not use the plugin:
 
 ```bash
-python -c "import shutil; print(shutil.which('edgar-mcp'))"
-```
-
-Then **install the skill**:
-
-```bash
-# macOS / Linux
 mkdir -p ~/.claude/skills && cp -r skill ~/.claude/skills/company-screen
 ```
 
 ```powershell
-# Windows PowerShell
 New-Item -ItemType Directory -Force "$HOME\.claude\skills" | Out-Null
 Copy-Item -Recurse -Force .\skill "$HOME\.claude\skills\company-screen"
 ```
 
-Then **restart the client** — configs are read at launch only. Re-run `python scripts/doctor.py`; check 11 reads the client config files on disk and reports which surfaces are actually wired.
+`doctor.py` accepts either shape. Full per-platform walkthrough, the merge case
+when other MCP servers are already registered, and the surface matrix are in
+[DEPLOYMENT.md](DEPLOYMENT.md).
 
-`edgar-mcp` is a console script `pip install` puts on the virtualenv's PATH, so the config points at a command rather than a file inside the source tree. Two things that catch people out: **use the absolute path** — the client does not inherit an activated venv, so an unqualified `edgar-mcp` will not resolve — and **never run it yourself**. It speaks MCP over stdio, so it waits silently on standard input and looks hung when it is working correctly. The client starts it.
-
-Full walkthrough — config file locations per platform, the merge case when other MCP servers are already registered, JSON validation, troubleshooting — in [DEPLOYMENT.md](DEPLOYMENT.md).
+</details>
 
 - **Installing for a team?** → [DEPLOYMENT.md](DEPLOYMENT.md) — security posture, egress requirements, troubleshooting
 - **Extending or maintaining it?** → [DEVELOPING.md](DEVELOPING.md) — test harness, fixtures, tuning knobs, invariants
