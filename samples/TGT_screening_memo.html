@@ -47,6 +47,53 @@
   .ref{color:var(--accent);font-size:11px;font-weight:600;vertical-align:super}
   .foot{margin-top:24px;padding-top:12px;border-top:1px solid var(--line);color:var(--muted);font-size:11.5px}
   code{background:var(--chip);padding:1px 5px;border-radius:4px;font-size:12px}
+
+  /* --- Dark mode -------------------------------------------------------- */
+  /* Only the custom properties are redefined; every rule below already reads
+     from them, so the whole document follows without duplicating selectors. */
+  @media (prefers-color-scheme: dark) {
+    :root{
+      --ink:#e6e9ef; --muted:#9aa4b2; --line:#2a3140; --bg:#0e1117; --panel:#161a22;
+      --navy:#8fb3e6; --accent:#6f9bf0; --bad:#f0776a; --warn:#e0a458; --ok:#4bcf98;
+      --chip:#1d2431;
+    }
+    /* The flag tints are literal hex in the light theme, so they need their own
+       dark values or red-on-dark becomes unreadable. */
+    .flag.red{background:#2a1614;border-color:#4a2420}
+    .flag.amber{background:#2a2114;border-color:#4a3a1e}
+    .flag.grey{background:#1b202a;border-color:#2c3340}
+    .snap{background:#141922}
+    .kpi{background:#161a22}
+    a{color:var(--accent)}
+  }
+
+  /* --- Print / PDF ------------------------------------------------------ */
+  /* A deal lead prints this or saves it as a PDF. Untreated, the browser
+     default clips wide tables, breaks flag blocks across pages, and drops the
+     source URLs — which for a document whose entire argument is traceability is
+     the one thing that must survive. */
+  @media print {
+    @page { margin: 14mm 12mm; }
+    body{background:#fff;color:#000;font-size:10.5pt}
+    .page{max-width:none;margin:0;border:0;border-radius:0;padding:0;box-shadow:none}
+
+    /* Never split an atomic block across a page boundary. */
+    table, .flag, .kpi, .snap, .note{break-inside:avoid;page-break-inside:avoid}
+    h2{break-after:avoid;page-break-after:avoid}
+    tr{break-inside:avoid;page-break-inside:avoid}
+    thead{display:table-header-group}   /* repeat headers on continued tables */
+
+    /* Tables must fit the page rather than scroll off it. */
+    table{width:100%;table-layout:auto;font-size:9pt}
+    .kpis{grid-template-columns:repeat(3,1fr)}
+
+    /* Preserve attribution: a printed citation with no URL is not a citation. */
+    a{color:#000;text-decoration:underline}
+    .src a[href]::after{content:" (" attr(href) ")";font-size:8pt;word-break:break-all}
+
+    /* Screen-only chrome. */
+    .badge{border:1px solid #000;color:#000;background:none}
+  }
 </style>
 </head>
 <body>
@@ -128,10 +175,10 @@
 
   <h2>Disclosure signals — full-text search</h2>
   <div class="src" style="margin-bottom:6px">Every Target filing since 2001. Boilerplate-vs-signal verdict computed against the 11 annual reports on file.</div>
-  <div class="flag grey"><span class="sev i">Absent</span><div><span class="code">GOING_CONCERN</span> — <i>"substantial doubt"</i> appears in no Target filing<span class="ref">[S5]</span>. Expected, and confirmed rather than assumed.</div></div>
-  <div class="flag grey"><span class="sev i">Absent</span><div><span class="code">CUSTOMER_CONCENTRATION</span> — no hits<span class="ref">[S5]</span>. Expected for a retailer with no single material customer.</div></div>
-  <div class="flag grey"><span class="sev i">Boilerplate</span><div><span class="code">MATERIAL_WEAKNESS</span> — present in all 11 annual reports, the signature of the auditor's standard description of its own testing method<span class="ref">[S5]</span>. <b>Not a finding.</b></div></div>
-  <div class="flag grey"><span class="sev i">Boilerplate</span><div><span class="code">GOODWILL_IMPAIRMENT</span> — present in all 11 annual reports<span class="ref">[S5]</span>. Standing accounting-policy language, not an event.</div></div>
+  <div class="flag grey"><span class="sev i">Absent</span><div><span class="code">GOING_CONCERN</span> — <i>"substantial doubt"</i> appears in no Target filing<span class="ref">[S4]</span>. Expected, and confirmed rather than assumed.</div></div>
+  <div class="flag grey"><span class="sev i">Absent</span><div><span class="code">CUSTOMER_CONCENTRATION</span> — no hits<span class="ref">[S4]</span>. Expected for a retailer with no single material customer.</div></div>
+  <div class="flag grey"><span class="sev i">Boilerplate</span><div><span class="code">MATERIAL_WEAKNESS</span> — present in all 11 annual reports, the signature of the auditor's standard description of its own testing method<span class="ref">[S4]</span>. <b>Not a finding.</b></div></div>
+  <div class="flag grey"><span class="sev i">Boilerplate</span><div><span class="code">GOODWILL_IMPAIRMENT</span> — present in all 11 annual reports<span class="ref">[S4]</span>. Standing accounting-policy language, not an event.</div></div>
 
   <h2>Data gaps &amp; caveats</h2>
   <div class="flag grey"><span class="sev i">Info</span><div><span class="code">TAG_DISCONTINUED</span> — <code>gross_profit</code> not tagged after FY2017. Gross margin above is <b>derived</b> from revenue less cost of revenue and cites both inputs, rather than pairing a stale FY2017 numerator with current revenue.<span class="ref">[S1]</span></div></div>
@@ -150,8 +197,7 @@
     <tr><td>S1</td><td style="text-align:left"><a href="https://www.sec.gov/Archives/edgar/data/27419/000002741926000016/tgt-20260131.htm">10-K (FY2025, period ended 2026-01-31)</a></td><td>2026-03-11</td><td style="text-align:left" class="src">0000027419-26-000016</td><td style="text-align:left" class="src">FY2023–FY2025, flags</td></tr>
     <tr><td>S2</td><td style="text-align:left"><a href="https://www.sec.gov/Archives/edgar/data/27419/000002741925000018/0000027419-25-000018-index.htm">10-K (FY2024 report)</a></td><td>2025-03-12</td><td style="text-align:left" class="src">0000027419-25-000018</td><td style="text-align:left" class="src">FY2022 figures</td></tr>
     <tr><td>S3</td><td style="text-align:left"><a href="https://www.sec.gov/Archives/edgar/data/27419/000002741924000032/0000027419-24-000032-index.htm">10-K (FY2023 report)</a></td><td>2024-03-13</td><td style="text-align:left" class="src">0000027419-24-000032</td><td style="text-align:left" class="src">FY2021 (CAGR base)</td></tr>
-    <tr><td>S4</td><td style="text-align:left"><a href="https://www.sec.gov/Archives/edgar/data/27419/000002741926000022/tgt-20260502.htm">10-Q (period ended 2026-05-02)</a></td><td>2026-05-29</td><td style="text-align:left" class="src">0000027419-26-000022</td><td style="text-align:left" class="src">Latest interim</td></tr>
-    <tr><td>S5</td><td style="text-align:left"><a href="https://efts.sec.gov/LATEST/search-index?q=%22substantial+doubt%22&amp;ciks=0000027419">EDGAR full-text search — all Target filings, 2001–present</a></td><td>—</td><td style="text-align:left" class="src">—</td><td style="text-align:left" class="src">Disclosure-signal presence / absence</td></tr>
+    <tr><td>S4</td><td style="text-align:left"><a href="https://efts.sec.gov/LATEST/search-index?q=%22substantial+doubt%22&amp;ciks=0000027419">EDGAR full-text search — all Target filings, 2001–present</a></td><td>—</td><td style="text-align:left" class="src">—</td><td style="text-align:left" class="src">Disclosure-signal presence / absence</td></tr>
   </table>
 
   <div class="foot">

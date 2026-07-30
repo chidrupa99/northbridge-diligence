@@ -277,6 +277,44 @@ set is item 5 in the README roadmap for that reason.
 
 ---
 
+## The deliverable format: audited, not rendered
+
+The memo is written by the model, and for a while nothing in code checked it. That
+was the one place the "code decides what must be reproducible" argument did not
+hold — a model having an off day could drop a source marker, quote a metric marked
+`meaningful: false`, or omit a high-severity flag, and no test would notice.
+
+**A full renderer was the obvious fix and is the wrong one.** Screen dict in,
+finished HTML out, would either strip the judgment that makes the memo worth
+reading — what leads, which risk matters, what to ask next — or demand the model
+hand over narrative strings to slot into fixed holes, which is a template wearing
+a renderer's name. That judgment is exactly the part a language model should own.
+
+So `memo_audit.py` checks invariants instead of owning layout. Three properties,
+each corresponding to a promise the README makes:
+
+- every `[S#]` marker resolves to a Sources row, and no row is stale
+- no metric with `meaningful: false` appears as a bare number
+- every high- and medium-severity flag appears in the memo
+
+It earned its place on first run. Pointed at the two sample memos already
+committed as exemplars, it found three real defects: BYND's HTML declared `S2` and
+never cited it while the Markdown did, and both TGT renderings carried an `S4` row
+for a 10-Q no figure came from. Those are precisely the failures it exists to
+catch, sitting in the documents held up as correct.
+
+What it deliberately does not check: whether the prose is good, whether the right
+finding leads, whether the analysis is sound. A regex asserting those would be
+theatre.
+
+**Still worth building, and named as next work rather than left implicit:** a
+hybrid renderer where code owns the *structure* (tables, the Sources block,
+`meaningful: false` rendering) and the model supplies only the narrative
+paragraphs. That gets the enforcement without flattening the judgment, and the
+auditor becomes its test rather than its replacement.
+
+---
+
 ## What is deliberately not built
 
 Peer comparables, a wider golden set, sector-relative thresholds, segment-level
