@@ -162,6 +162,26 @@ Break these and the tool loses the argument it is built to make.
     last match (lands on a cross-reference *after* the section — that returned
     2,958 characters of the wrong section on Dollar General and reported
     success). See `_find_section_span`.
+12. **A gap is a success, not an error.** Reaching EDGAR and getting a valid
+    answer of "nothing" returns a structured `absence` (`TAG_NOT_REPORTED`,
+    `TAG_DISCONTINUED`, `OUTSIDE_WINDOW`) naming the tags tried. Only failing to
+    *obtain* an answer raises. Never return a bare `[]` — a reader cannot
+    distinguish an untagged concept from a failed fetch, and screening AMD used
+    to hand back `"total_liabilities": []` with no explanation anywhere in the
+    payload. This makes gaps legible; it does not fill them, so invariant 7
+    still holds.
+13. **Errors carry a taxonomy, and `recoverable` is not `retryable`.**
+    `recoverable` means the model can continue its turn; `retryable` means this
+    exact call may succeed later. A bad ticker is the first and not the second.
+    Every `EdgarError` subclass sets `code` and `category`; only rate limits and
+    upstream 5xx set `retryable`. 403 is deliberately a client error — the header
+    is wrong and will stay wrong, so retrying would hammer EDGAR over our bug.
+14. **Validate arguments before they become a wrong diagnosis.** `years=-5` once
+    produced an empty fiscal-year window, tripping the same "nothing found"
+    branch as a genuine IFRS filer — so Apple came back as *"Foreign or
+    non-standard filers may not report US-GAAP XBRL facts."* The tool blamed the
+    filer for the caller's mistake. `_validate_years` / `_validate_limit` return
+    `INVALID_ARGUMENT` instead.
 
 ---
 

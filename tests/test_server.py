@@ -197,3 +197,33 @@ class TestVersionHandshake:
         from northbridge_diligence import __version__
         assert __version__
         assert server.mcp.version == __version__
+
+
+class TestToolAnnotations:
+    """All eight tools are read-only; none said so.
+
+    Clients use these hints to decide what needs a confirmation prompt. Without
+    them a cautious client may gate a public-filings lookup behind a dialog, or
+    a careless one may treat a mutating tool as safe — the hints exist so
+    neither has to guess.
+    """
+
+    def test_every_tool_declares_itself_read_only(self):
+        for name, tool in _tools().items():
+            assert tool.annotations is not None, f"{name} has no annotations"
+            assert tool.annotations.read_only_hint is True, name
+
+    def test_every_tool_declares_itself_idempotent(self):
+        # EDGAR is an append-only archive: the same arguments give the same
+        # answer until the filer files something new.
+        for name, tool in _tools().items():
+            assert tool.annotations.idempotent_hint is True, name
+
+    def test_every_tool_declares_that_it_reaches_outside(self):
+        # Results depend on sec.gov being up, which a client may want to know.
+        for name, tool in _tools().items():
+            assert tool.annotations.open_world_hint is True, name
+
+    def test_no_tool_claims_to_be_destructive(self):
+        for name, tool in _tools().items():
+            assert tool.annotations.destructive_hint is False, name

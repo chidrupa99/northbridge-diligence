@@ -27,6 +27,8 @@ try:                                          # SDK >= 2.0
 except ImportError:                           # SDK 1.x
     from mcp.server.fastmcp import FastMCP as _Server
 
+from mcp.types import ToolAnnotations
+
 from . import __version__
 from . import edgar_client as ec
 
@@ -34,6 +36,25 @@ from . import edgar_client as ec
 # It returned an empty string before, which tells a client nothing about which
 # build it is talking to — unhelpful the moment two versions exist in the wild.
 mcp = _Server("northbridge-diligence", version=__version__)
+
+
+# Every tool here reads public filings and mutates nothing, but nothing said so
+# until now. Clients use these hints to decide what needs a confirmation prompt —
+# without them a cautious client may gate a read-only lookup behind a dialog.
+#
+#   read_only_hint   — no side effects at all. True for all eight.
+#   idempotent_hint  — same arguments give the same answer. True: EDGAR is an
+#                      append-only archive, so a screen only changes when the
+#                      filer files something new.
+#   open_world_hint  — reaches outside this process. True: every tool talks to
+#                      sec.gov, so results depend on an external system being up.
+#   destructive_hint — explicitly False. Nothing here can delete or overwrite.
+READ_ONLY = ToolAnnotations(
+    read_only_hint=True,
+    idempotent_hint=True,
+    open_world_hint=True,
+    destructive_hint=False,
+)
 
 
 def _safe(fn, *args, **kwargs) -> dict:
@@ -64,7 +85,7 @@ def _safe(fn, *args, **kwargs) -> dict:
         }
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 def resolve_company(query: str) -> dict:
     """Resolve a ticker OR company name to its SEC CIK.
 
@@ -77,7 +98,7 @@ def resolve_company(query: str) -> dict:
     return _safe(ec.resolve_company, query)
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 def get_company_profile(query: str) -> dict:
     """Identity card for a company: legal name, tickers, exchange, SIC industry,
     fiscal year-end, state of incorporation, and links to its latest 10-K/10-Q.
@@ -87,7 +108,7 @@ def get_company_profile(query: str) -> dict:
     return _safe(ec.get_company_profile, query)
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 def get_key_financials(query: str, years: int = 5) -> dict:
     """Curated multi-year financials (income statement, balance sheet, cash flow)
     from annual 10-K XBRL data. Returns each line item as a time series where
@@ -99,7 +120,7 @@ def get_key_financials(query: str, years: int = 5) -> dict:
     return _safe(ec.get_key_financials, query, years=years)
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 def compute_screening_metrics(query: str, years: int = 5) -> dict:
     """The screen result, computed IN CODE (not by the model): revenue CAGR & YoY
     growth, gross/operating/net margins, total debt, debt/equity, debt/EBITDA,
@@ -120,7 +141,7 @@ def compute_screening_metrics(query: str, years: int = 5) -> dict:
     return _safe(ec.compute_screening_metrics, query, years=years)
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 def list_filings(query: str, form_types: list[str] | None = None,
                  limit: int = 15) -> dict:
     """Recent SEC filings for a company, each with a direct EDGAR document URL.
@@ -131,7 +152,7 @@ def list_filings(query: str, form_types: list[str] | None = None,
     return _safe(ec.list_filings, query, form_types=form_types, limit=limit)
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 def get_risk_factors(query: str) -> dict:
     """Extract the Item 1A "Risk Factors" section from the company's latest
     10-K, plus the source URL. Use this for the risk-signal part of a screen.
@@ -142,7 +163,7 @@ def get_risk_factors(query: str) -> dict:
     return _safe(ec.get_risk_factors, query)
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 def scan_disclosure_signals(query: str,
                             extra_phrases: list[str] | None = None) -> dict:
     """Sweep a company's filings for the risk LANGUAGE that never appears in the
@@ -172,7 +193,7 @@ def scan_disclosure_signals(query: str,
     return _safe(ec.scan_disclosure_signals, query, extra_phrases=extra_phrases)
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 def get_financial_concept(query: str, metric_or_tag: str, years: int = 6) -> dict:
     """Flexible escape hatch: fetch the annual series for a single financial
     concept — either a friendly name from the curated map (e.g. "revenue",
