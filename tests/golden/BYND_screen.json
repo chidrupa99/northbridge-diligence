@@ -1,5 +1,16 @@
 {
  "financials": {
+  "absence_note": "1 of 17 line items are empty. Each is explained in `absent_line_items` with the tags tried and why nothing was usable. These are gaps in the filer's XBRL, not fetch failures \u2014 report them as gaps and do not estimate around them.",
+  "absent_line_items": {
+   "total_liabilities": {
+    "code": "TAG_NOT_REPORTED",
+    "last_reported_fiscal_year": null,
+    "note": "The filer has never reported any of the candidate tags.",
+    "tags_tried": [
+     "Liabilities"
+    ]
+   }
+  },
   "company": {
    "cik": 1655210,
    "cik10": "0001655210",

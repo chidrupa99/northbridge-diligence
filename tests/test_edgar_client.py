@@ -532,3 +532,119 @@ def test_curated_phrases_stay_short_enough_to_match_real_filings():
     # filings while "material weakness" matched 23. Length is the tell.
     for name, spec in ec.DISCLOSURE_PACKS.items():
         assert len(spec["phrase"].split()) <= 5, f"{name} phrase is over-specific"
+
+
+# --------------------------------------------------------------------------- #
+# Structured absence
+#
+# One rule: reaching EDGAR and getting a valid answer of "nothing" is a SUCCESS
+# with an explicit reason. Only failing to obtain an answer is an error.
+#
+# The condition used to produce four different shapes depending on which tool you
+# asked. The worst was get_key_financials returning a bare `[]` with no
+# explanation anywhere in the payload — screening AMD gave back
+# "total_liabilities": [] and a reader could not distinguish "this filer does not
+# tag it" from "our fetch failed".
+# --------------------------------------------------------------------------- #
+
+def test_empty_line_item_carries_a_reason_not_a_bare_list():
+    res = ec.get_key_financials("BYND", years=5)
+    empty = [m for m, s in res["line_items"].items() if not s]
+    assert empty, "fixture should have at least one untagged line item"
+    for metric in empty:
+        assert metric in res["absent_line_items"], f"{metric} empty with no explanation"
+
+
+def test_absence_distinguishes_never_reported_from_abandoned():
+    """The two are different facts and a reader needs to tell them apart.
+
+    BYND never tags Liabilities at all. Target tagged GrossProfit until FY2017
+    and then stopped — which is why it cannot be used against a FY2025 anchor.
+    """
+    bynd = ec.get_key_financials("BYND", years=5)["absent_line_items"]
+    assert bynd["total_liabilities"]["code"] == "TAG_NOT_REPORTED"
+
+    tgt = ec.get_key_financials("TGT", years=5)["absent_line_items"]
+    assert tgt["gross_profit"]["code"] == "TAG_DISCONTINUED"
+    assert tgt["gross_profit"]["last_reported_fiscal_year"] == 2017
+
+
+def test_absence_names_the_tags_that_were_tried():
+    # Without this a reader cannot tell a thin ladder from an exhaustive one.
+    absent = ec.get_key_financials("BYND", years=5)["absent_line_items"]
+    assert absent["total_liabilities"]["tags_tried"] == ec.CONCEPT_MAP["total_liabilities"]
+
+
+def test_absence_agrees_with_what_compute_screening_metrics_reports():
+    """Two independent paths must not disagree about what is missing.
+
+    compute_screening_metrics already exposed this via data_quality; the point of
+    the change was that the tool one level down exposed nothing.
+    """
+    for ticker in ("BYND", "TGT"):
+        absent = set(ec.get_key_financials(ticker, years=5)["absent_line_items"])
+        reported = set(ec.compute_screening_metrics(ticker, years=5)
+                       ["data_quality"]["missing_line_items"])
+        assert absent == reported, f"{ticker}: {absent} != {reported}"
+
+
+def test_absent_line_items_is_omitted_entirely_when_nothing_is_missing():
+    # No empty key to reason about when there is nothing to explain.
+    res = ec.get_key_financials("BYND", years=5)
+    if all(res["line_items"].values()):
+        assert "absent_line_items" not in res
+
+
+def test_concept_tool_returns_success_with_absence_not_an_error():
+    # A tag the filer does not report is a valid answer of "nothing", not a
+    # failure to obtain an answer.
+    res = ec.get_financial_concept("BYND", "SomeTagNobodyReports")
+    assert res["series"] == []
+    assert res["absence"]["code"] == "TAG_NOT_REPORTED"
+    assert res["absence"]["tags_tried"] == ["SomeTagNobodyReports"]
+    assert "error" not in res
+
+
+def test_concept_tool_keeps_its_note_for_backward_compatibility():
+    res = ec.get_financial_concept("BYND", "SomeTagNobodyReports")
+    assert "No annual data" in res["note"]
+
+
+class TestArgumentValidation:
+    """`years=-5` used to blame the filer for the caller's mistake.
+
+    A non-positive window produced no fiscal years, which tripped the same
+    "nothing found" branch as a genuine IFRS filer — so asking for Apple with
+    years=-5 returned "No XBRL financial data found for Apple Inc. Foreign or
+    non-standard filers may not report US-GAAP XBRL facts." Apple reports XBRL
+    exhaustively. A confidently wrong diagnosis is the failure mode this whole
+    codebase is built to avoid.
+    """
+
+    @pytest.mark.parametrize("years", [0, -1, -5])
+    def test_non_positive_years_is_rejected_as_the_callers_error(self, years):
+        with pytest.raises(ec.InvalidArgument, match="at least 1"):
+            ec.get_key_financials("BYND", years=years)
+
+    def test_absurd_years_is_rejected(self):
+        with pytest.raises(ec.InvalidArgument, match="at most"):
+            ec.get_key_financials("BYND", years=10000)
+
+    def test_non_integer_years_is_rejected(self):
+        with pytest.raises(ec.InvalidArgument, match="integer"):
+            ec.get_key_financials("BYND", years="five")
+
+    def test_the_error_does_not_blame_the_filer(self):
+        # The specific regression: it must not claim the company lacks XBRL.
+        with pytest.raises(ec.InvalidArgument) as exc:
+            ec.get_key_financials("BYND", years=-5)
+        assert "IFRS" not in str(exc.value)
+        assert "20-F" not in str(exc.value)
+
+    @pytest.mark.parametrize("limit", [0, -3, 1000])
+    def test_bad_limit_is_rejected(self, limit):
+        with pytest.raises(ec.InvalidArgument):
+            ec.list_filings("BYND", limit=limit)
+
+    def test_valid_arguments_still_work(self):
+        assert ec.get_key_financials("BYND", years=3)["years_requested"] == 3

@@ -753,6 +753,7 @@ def get_financial_concept(query: str, metric_or_tag: str, years: int = 6) -> dic
     Escape-hatch / flexibility tool: return the annual series for either a
     friendly metric name (see CONCEPT_MAP) or a raw US-GAAP tag.
     """
+    _validate_years(years)
     comp = _resolve_cik(query)
     candidates = CONCEPT_MAP.get(metric_or_tag)
     if candidates is None:
@@ -766,11 +767,15 @@ def get_financial_concept(query: str, metric_or_tag: str, years: int = 6) -> dic
     facts = get_company_facts(comp["cik10"])
     series, used = merged_series(facts, comp["cik"], candidates)
     if not series:
+        # Success with a structured absence, not an error: EDGAR answered, and
+        # the answer was "this filer does not report that". `note` stays for
+        # backward compatibility; `absence` is the machine-readable form.
         return {
             "company": comp,
             "metric": metric_or_tag,
             "tags_tried": candidates,
             "series": [],
+            "absence": _absence("TAG_NOT_REPORTED", candidates),
             "note": f"No annual data found for '{metric_or_tag}' "
                     f"(tried tags: {', '.join(candidates)}).",
         }
@@ -783,6 +788,111 @@ def get_financial_concept(query: str, metric_or_tag: str, years: int = 6) -> dic
         "tags_tried": candidates,
         "series": [sv.to_dict() for sv in series],
     }
+
+
+# --------------------------------------------------------------------------- #
+# Structured absence
+# --------------------------------------------------------------------------- #
+#
+# One rule, applied everywhere:
+#
+#   Reaching EDGAR and getting a valid answer of "nothing" is a SUCCESS with an
+#   explicit, structured absence. Only failing to OBTAIN an answer is an error.
+#
+# Before this, the same condition produced four different shapes depending on
+# which tool you asked. The worst was get_key_financials handing back a bare
+# `[]` for an untagged line item with no explanation anywhere in the payload:
+# screening AMD returned "total_liabilities": [] and a reader could not tell
+# "this filer does not tag it" from "our fetch failed". compute_screening_metrics
+# listed it under data_quality.missing_line_items, but the tool one level down
+# gave you nothing.
+#
+# This makes gaps legible. It does not fill them — invariant 7 still holds:
+# missing data is reported, never estimated.
+
+_MAX_YEARS = 25  # EDGAR's XBRL era starts ~2009; beyond this there is nothing to fetch.
+
+
+def _validate_years(years: int, *, maximum: int = _MAX_YEARS) -> int:
+    """Reject a nonsense window before it produces a confidently wrong answer.
+
+    This is not defensive padding. `years=-5` produced an empty fiscal-year
+    window, which tripped the same "nothing found" branch as a genuine IFRS
+    filer — so asking for Apple with a negative window returned *"No XBRL
+    financial data found for Apple Inc. Foreign or non-standard filers (20-F /
+    IFRS) may not report US-GAAP XBRL facts."* Apple reports XBRL exhaustively.
+    The tool blamed the filer for the caller's mistake, which is precisely the
+    plausible-but-wrong failure this codebase exists to avoid.
+    """
+    if not isinstance(years, int) or isinstance(years, bool):
+        raise InvalidArgument(f"`years` must be an integer, got {type(years).__name__}.")
+    if years < 1:
+        raise InvalidArgument(
+            f"`years` must be at least 1, got {years}. A non-positive window "
+            "yields no fiscal years, which is not the same as the filer having "
+            "no data."
+        )
+    if years > maximum:
+        raise InvalidArgument(
+            f"`years` must be at most {maximum}, got {years}. EDGAR's XBRL era "
+            "begins around 2009, so a longer window cannot return more."
+        )
+    return years
+
+
+def _validate_limit(limit: int, *, maximum: int = 100) -> int:
+    """Same reasoning as `_validate_years`, for filing-list pagination."""
+    if not isinstance(limit, int) or isinstance(limit, bool):
+        raise InvalidArgument(f"`limit` must be an integer, got {type(limit).__name__}.")
+    if limit < 1:
+        raise InvalidArgument(f"`limit` must be at least 1, got {limit}.")
+    if limit > maximum:
+        raise InvalidArgument(f"`limit` must be at most {maximum}, got {limit}.")
+    return limit
+
+
+ABSENCE_CODES = {
+    "TAG_NOT_REPORTED": "The filer has never reported any of the candidate tags.",
+    "TAG_DISCONTINUED": "The filer reported this once but stopped before the "
+                        "reference fiscal year, so using it would pair a stale "
+                        "numerator with a current denominator.",
+    "OUTSIDE_WINDOW": "Reported, but only outside the requested fiscal-year window.",
+}
+
+
+def _absence(code: str, tags_tried: list[str], *,
+             last_reported: Optional[int] = None,
+             reference_fiscal_year: Optional[int] = None) -> dict:
+    """Describe *why* a series is empty, in a shape every tool shares."""
+    note = ABSENCE_CODES.get(code, "")
+    if code == "TAG_DISCONTINUED" and last_reported:
+        note = (f"Last reported for fiscal {last_reported}; the screen is anchored "
+                f"to {reference_fiscal_year}. Excluded rather than carried forward.")
+    return {
+        "code": code,
+        "tags_tried": tags_tried,
+        "last_reported_fiscal_year": last_reported,
+        "note": note,
+    }
+
+
+def _classify_absence(metric: str, tags_tried: list[str],
+                      full_series: list, reference_fy: Optional[int]) -> dict:
+    """Work out which kind of nothing this is.
+
+    `full_series` is the unwindowed series — the distinction between "never
+    reported" and "reported, then abandoned" is only visible before windowing,
+    and it is the distinction a reader most needs.
+    """
+    if not full_series:
+        return _absence("TAG_NOT_REPORTED", tags_tried)
+    years = [sv.fiscal_year for sv in full_series if sv.fiscal_year is not None]
+    last = max(years) if years else None
+    if last is not None and reference_fy is not None and last < reference_fy:
+        return _absence("TAG_DISCONTINUED", tags_tried, last_reported=last,
+                        reference_fiscal_year=reference_fy)
+    return _absence("OUTSIDE_WINDOW", tags_tried, last_reported=last,
+                    reference_fiscal_year=reference_fy)
 
 
 # The line items that define "which fiscal year is this screen about".
@@ -838,7 +948,8 @@ def get_key_financials(query: str, years: int = 5) -> dict:
     Curated multi-year financials across income statement, balance sheet and
     cash flow. Every value is a SourcedValue (period + form + accession + URL).
     """
-    comp, series_map, tags_used, reference_fy, _full = _all_line_items(query, years)
+    _validate_years(years)
+    comp, series_map, tags_used, reference_fy, full = _all_line_items(query, years)
     if not any(series_map.values()):
         raise NoXBRLData(
             f"No XBRL financial data found for {comp['name']} "
@@ -846,7 +957,17 @@ def get_key_financials(query: str, years: int = 5) -> dict:
             "may not report US-GAAP XBRL facts."
         )
     mixed = sorted(m for m, used in tags_used.items() if len(used) > 1)
-    return {
+
+    # Every empty line item gets a reason. Without this the caller sees a bare
+    # `[]` and cannot distinguish an untagged concept from a failed fetch — which
+    # is exactly what screening AMD produced for total_liabilities.
+    absent = {
+        metric: _classify_absence(metric, CONCEPT_MAP.get(metric, []),
+                                  full.get(metric, []), reference_fy)
+        for metric, series in series_map.items() if not series
+    }
+
+    result = {
         "company": comp,
         "years_requested": years,
         "reference_fiscal_year": reference_fy,
@@ -858,6 +979,15 @@ def get_key_financials(query: str, years: int = 5) -> dict:
             for metric, series in series_map.items()
         },
     }
+    if absent:
+        result["absent_line_items"] = absent
+        result["absence_note"] = (
+            f"{len(absent)} of {len(series_map)} line items are empty. Each is "
+            "explained in `absent_line_items` with the tags tried and why nothing "
+            "was usable. These are gaps in the filer's XBRL, not fetch failures — "
+            "report them as gaps and do not estimate around them."
+        )
+    return result
 
 
 # --------------------------------------------------------------------------- #
@@ -1058,6 +1188,7 @@ def compute_screening_metrics(query: str, years: int = 5) -> dict:
     metric carries the sourced inputs it was computed from and a `meaningful`
     boolean, so the caller never has to decide whether a ratio is quotable.
     """
+    _validate_years(years)
     comp, s, tags_used, reference_fy, full = _all_line_items(query, years)
     if not any(s.values()) or reference_fy is None:
         raise NoXBRLData(
@@ -1220,6 +1351,7 @@ def compute_screening_metrics(query: str, years: int = 5) -> dict:
 
 def list_filings(query: str, form_types: Optional[list[str]] = None,
                  limit: int = 15) -> dict:
+    _validate_limit(limit)
     comp = _resolve_cik(query)
     subs = _get_submissions(comp["cik10"])
     recent = subs.get("filings", {}).get("recent", {})
