@@ -37,7 +37,7 @@ company name ──► [ company-screen skill ]         (intelligence layer)
 
 ### One fetch, not eighteen
 
-Financial data comes from `data.sec.gov/api/xbrl/companyfacts/CIK##########.json` — **one request returns every XBRL fact the filer has ever reported**. An earlier design called `companyconcept` once per tag, which meant ~18 requests per screen, 18 chances to hit a rate limit, and 18 partial-failure modes.
+Financial data comes from `data.sec.gov/api/xbrl/companyfacts/CIK##########.json` — **one request returns every XBRL fact the filer has ever reported**. An earlier design called `companyconcept` once per curated line item — 17 of those, plus the ticker-map lookup — so 18 requests per screen, 18 chances to hit a rate limit, and 18 partial-failure modes.
 
 A full screen is now **two HTTP calls**: the ticker→CIK map (cached) and one `companyfacts` blob (cached). A test asserts this and asserts no `companyconcept` URL is ever requested, so the property can't regress.
 
